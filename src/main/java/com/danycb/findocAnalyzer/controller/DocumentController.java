@@ -30,4 +30,10 @@ public class DocumentController {
     public ResponseEntity<DocumentResponseDTO> getById(@PathVariable UUID id) {
         return ResponseEntity.ok(documentService.getDocumentById(id));
     }
+
+    @PostMapping("/{id}/analyze")
+    public ResponseEntity<DocumentResponseDTO> analyze(@PathVariable UUID id) {
+        DocumentResponseDTO result = documentService.analyzeDocument(id);
+        return ResponseEntity.ok(result);
+    }
 }

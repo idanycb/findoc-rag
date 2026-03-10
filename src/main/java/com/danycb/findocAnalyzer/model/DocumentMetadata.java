@@ -31,6 +31,14 @@ public class DocumentMetadata {
     @Column(nullable = false)
     private DocumentStatus status;
 
+    @Column(columnDefinition = "TEXT")
+    private String aiSummary;
+
+    private Instant lastAnalyzedAt;
+
+    @Version
+    private Integer version;
+
     /**
      * JPA Lifecycle Hook.
      * Auto sets the timestamp before the record is inserted.

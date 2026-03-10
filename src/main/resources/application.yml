@@ -20,6 +20,21 @@ spring:
       hibernate:
         format_sql: true
 
+langchain4j:
+  open-ai:
+    chat-model:
+      api-key: ${GROQ_API_KEY}
+      base-url: https://api.groq.com/openai/v1
+      model-name: llama-3.1-8b-instant
+      temperature: 0.0
+      timeout: 30s
+      log-requests: true
+      log-responses: true
+
+app:
+  analysis:
+    max-file-size-mb: 10
+
 logging:
   level:
     org.springframework.web: INFO

@@ -12,7 +12,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -22,7 +21,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class DocumentService {
     private final DocumentMetadataRepository repository;
-    private final DocumentAnalyzerEngine documentAnalyzerEngine;
+    private final AsyncDocumentService asyncDocumentService;
 
     @Transactional(readOnly = true)
     public List<DocumentResponseDTO> getAllDocuments() {
@@ -68,25 +67,9 @@ public class DocumentService {
         doc.setStatus(DocumentStatus.PROCESSING);
         repository.saveAndFlush(doc);
 
-        try {
-            log.debug("Initiating analysis for file: {}", doc.getFileName());
-            String context = String.format("File: %s, Type: %s", doc.getFileName(), doc.getContentType());
+        asyncDocumentService.processAiAnalysisAsync(doc);
 
-            String aiSummary = documentAnalyzerEngine.analyzeMetadata(context);
-
-            doc.setStatus(DocumentStatus.COMPLETED);
-            doc.setAiSummary(aiSummary);
-            doc.setLastAnalyzedAt(Instant.now());
-
-            log.info("Successfully analyzed document: {}", doc.getId());
-            return mapToDTO(repository.save(doc));
-        } catch (Exception e) {
-            log.error("AI analysis failed for doc: {}, error: {}", doc.getId(), e.getMessage());
-            doc.setStatus(DocumentStatus.FAILED);
-            repository.save(doc);
-
-            throw new AiAnalysisException("Failed to process document via Groq:llama-3.1-8b-instant", e);
-        }
+        return mapToDTO(doc);
     }
 
     private DocumentResponseDTO mapToDTO(DocumentMetadata entity) {

@@ -3,11 +3,13 @@ package com.danycb.findocAnalyzer.dto;
 import com.danycb.findocAnalyzer.model.DocumentStatus;
 import lombok.Builder;
 import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.time.Instant;
 import java.util.UUID;
 
-@Data
+@Getter @Setter
 @Builder
 public class DocumentResponseDTO {
     private UUID id;

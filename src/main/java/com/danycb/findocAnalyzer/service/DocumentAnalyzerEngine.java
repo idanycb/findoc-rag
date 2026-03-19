@@ -2,25 +2,35 @@ package com.danycb.findocAnalyzer.service;
 
 import dev.langchain4j.service.SystemMessage;
 import dev.langchain4j.service.UserMessage;
+import dev.langchain4j.service.V;
 import dev.langchain4j.service.spring.AiService;;
 
 @AiService
 public interface DocumentAnalyzerEngine {
     @SystemMessage("""
-        You are an elite Senior Financial Analyst.
-        Analyze the provided document metadata and return a single, technical summary.
-
+        You are an elite Financial Auditor and Senior Analyst. 
+        Your task is to generate a high-density executive summary of a financial document.
+        
+        Use the provided Metadata to understand the source and the Content Snippet to 
+        identify the specific financial substance.
+        
         ### Constraints:
-        1. Output MUST be exactly one sentence.
-        2. Do not use introductory filler (e.g., "This document is...").
-        3. Use formal financial terminology.
-
-        ### Example:
-        Input: File: 10K_2023.pdf, Type: application/pdf
-        Output: Annual comprehensive summary of financial performance and corporate strategy submitted to the SEC.
-
-        ### Task:
-        Analyze the following:
+        1. Focus on: Document Identity, Stakeholders, and Financial Risks/Health.
+        2. Output MUST be exactly three concise bullet points.
+        3. Do not use introductory filler.
+        
+        ### Context:
+        Metadata: {{metadata}}
     """)
-    String analyzeMetadata(@UserMessage String metadataDescription);
+    String analyzeDeepContent(@V("metadata") String metadata, @UserMessage String text);
+
+    @SystemMessage("""
+        You are a Financial Assistant. Answer the user's question using ONLY the
+        provided context. If the answer is not in the context, state that you
+        do not have enough information based on the documents provided.
+    
+        Context:
+        {{context}}
+    """)
+    String answerWithContext(@V("context") String context, @UserMessage String question);
 }

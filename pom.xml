@@ -110,6 +110,20 @@
 			<artifactId>langchain4j-open-ai-spring-boot-starter</artifactId>
 		</dependency>
 
+		<!-- PDF Content Extraction -->
+		<dependency>
+			<groupId>org.apache.pdfbox</groupId>
+			<artifactId>pdfbox</artifactId>
+			<version>3.0.7</version>
+		</dependency>
+
+		<!-- Quantized, on‑device embedding model -->
+		<dependency>
+			<groupId>dev.langchain4j</groupId>
+			<artifactId>langchain4j-embeddings-all-minilm-l6-v2-q</artifactId>
+			<version>1.12.2-beta22</version>
+		</dependency>
+
 	</dependencies>
 
 	<build>

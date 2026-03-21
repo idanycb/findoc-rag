@@ -5,6 +5,14 @@ spring:
   config:
     import: optional:file:.env[.properties]
 
+  cloud:
+    aws:
+      sqs:
+        listener:
+          max-concurrent-messages: 5
+          max-messages-per-poll: 5
+        queue-not-found-strategy: fail
+
   datasource:
     url: jdbc:postgresql://localhost:5432/findoc_analyzer_db
     username: danycb
@@ -42,11 +50,6 @@ langchain4j:
       timeout: 30s
       log-requests: true
       log-responses: true
-
-app:
-  analysis:
-    max-file-size-mb: 10
-
 
 logging:
   level:

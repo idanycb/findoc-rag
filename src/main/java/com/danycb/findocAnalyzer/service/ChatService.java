@@ -19,7 +19,7 @@ import static dev.langchain4j.store.embedding.filter.MetadataFilterBuilder.metad
 public class ChatService {
     private final EmbeddingModel embeddingModel;
     private final EmbeddingStore<TextSegment> embeddingStore;
-    private final DocumentAnalyzerEngine aiEngine;
+    private final AiEngine aiEngine;
 
     public String answerQuestion(String question, String currentUserId) {
         var questionEmbedding = embeddingModel.embed(question).content();

@@ -2,16 +2,15 @@ package com.danycb.findocAnalyzer.controller;
 
 import com.danycb.findocAnalyzer.dto.DocumentRequestDTO;
 import com.danycb.findocAnalyzer.dto.DocumentResponseDTO;
-import com.danycb.findocAnalyzer.model.DocumentMetadata;
 import com.danycb.findocAnalyzer.service.DocumentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -27,8 +26,9 @@ public class DocumentController {
     }
 
     @PostMapping
-    public ResponseEntity<DocumentResponseDTO> create(@Valid @RequestBody DocumentRequestDTO request, @AuthenticationPrincipal String username) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(documentService.saveDocumentMetadata(request,username));
+    public ResponseEntity<DocumentResponseDTO> uploadDocument(@RequestBody @Valid DocumentRequestDTO documentRequestDTO) {
+        DocumentResponseDTO response = documentService.initiateDirectUpload(documentRequestDTO);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @GetMapping("/{id}")
@@ -36,9 +36,15 @@ public class DocumentController {
         return ResponseEntity.ok(documentService.getDocumentById(id));
     }
 
+    @GetMapping("/{id}/view")
+    public ResponseEntity<Map<String, Object>> getViewUrl(@PathVariable UUID id) {
+        String url = documentService.generateViewUrl(id);
+        return ResponseEntity.ok(Map.of("viewUrl", url));
+    }
+
     @PostMapping("/{id}/analyze")
-    public ResponseEntity<DocumentResponseDTO> analyze(@PathVariable UUID id, @AuthenticationPrincipal String username) {
-        DocumentResponseDTO result = documentService.analyzeDocument(id, username);
+    public ResponseEntity<DocumentResponseDTO> analyze(@PathVariable UUID id) {
+        DocumentResponseDTO result = documentService.reanalyzeDocument(id);
         return ResponseEntity.ok(result);
     }
 }

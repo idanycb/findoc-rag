@@ -1,4 +1,4 @@
-package com.danycb.findocAnalyzer.config;
+package com.danycb.findocAnalyzer.security;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

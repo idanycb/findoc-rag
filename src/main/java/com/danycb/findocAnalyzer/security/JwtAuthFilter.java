@@ -1,4 +1,4 @@
-package com.danycb.findocAnalyzer.config;
+package com.danycb.findocAnalyzer.security;
 
 import com.danycb.findocAnalyzer.service.JwtService;
 import jakarta.servlet.FilterChain;

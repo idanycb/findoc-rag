@@ -7,6 +7,7 @@ import com.danycb.findocAnalyzer.model.DocumentMetadata;
 import com.danycb.findocAnalyzer.model.DocumentStatus;
 import com.danycb.findocAnalyzer.exception.ResourceNotFoundException;
 import com.danycb.findocAnalyzer.repository.DocumentMetadataRepository;
+import com.danycb.findocAnalyzer.security.AuthContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -22,47 +23,66 @@ import java.util.stream.Collectors;
 public class DocumentService {
     private final DocumentMetadataRepository repository;
     private final AsyncDocumentService asyncDocumentService;
+    private final S3Service s3Service;
+    private final AuthContext auth;
+    private final S3EventPublisher s3EventPublisher;
 
     @Transactional(readOnly = true)
     public List<DocumentResponseDTO> getAllDocuments() {
-        log.info("Fetching all document metadata.");
-        return repository.findAll().stream()
+        String userId = auth.username();
+        log.info("Fetching all document metadata for user: {}", userId);
+
+        return repository.findAllByUserId(userId).stream()
                 .map(this::mapToDTO)
                 .collect(Collectors.toList());
     }
 
-    @Transactional
-    public DocumentResponseDTO saveDocumentMetadata(DocumentRequestDTO request, String userId) {
-        String fileName = request.getFileName();
-        Long size = request.getSize();
-        String type = request.getType();
+    @Transactional(readOnly = true)
+    public DocumentResponseDTO getDocumentById(UUID id) {
+        return mapToDTO(findDocById(id));
+    }
 
-        log.debug("Ingesting document: {} for user: {}", fileName, userId);
+    @Transactional
+    public DocumentResponseDTO initiateDirectUpload(DocumentRequestDTO request) {
+        String userId = auth.username();
+        log.info("User [{}] requested upload ticket for: {}", userId, request.getFileName());
+
         DocumentMetadata doc = DocumentMetadata.builder()
-                .fileName(fileName)
-                .fileSize(size)
-                .contentType(type)
+                .fileName(request.getFileName())
+                .fileSize(request.getSize())
+                .contentType(request.getType())
                 .status(DocumentStatus.PENDING)
+                .userId(userId)
                 .build();
 
-        DocumentMetadata savedDoc = repository.save(doc);
+        DocumentMetadata saved = repository.save(doc);
 
-        analyzeDocument(savedDoc.getId(), userId);
+        String uploadUrl = s3Service.generatePresignedUploadUrl(userId, saved.getId(), saved.getFileName(), saved.getContentType());
 
-        return mapToDTO(savedDoc);
+        DocumentResponseDTO response = mapToDTO(saved);
+        response.setUploadUrl(uploadUrl);
+
+        return response;
     }
 
     @Transactional(readOnly = true)
-    public DocumentResponseDTO getDocumentById(UUID id) {
-        return repository.findById(id)
-                .map(this::mapToDTO)
-                .orElseThrow(() -> new ResourceNotFoundException("Document not found with id: " + id));
+    public String generateViewUrl(UUID id) {
+        String userId = auth.username();
+        DocumentMetadata doc = findDocById(id, userId);
+
+        return s3Service.generatePresignedViewUrl(userId, doc.getId(), doc.getFileName());
     }
 
     @Transactional
-    public DocumentResponseDTO analyzeDocument(UUID id, String userId) {
-        DocumentMetadata doc = repository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Document not found with id: " + id));
+    public void deleteDocument(UUID id) {
+        DocumentMetadata doc = findDocById(id);
+        repository.delete(doc);
+        log.warn("Metadata for {} removed.", id);
+    }
+
+    @Transactional
+    public void analyzeDocument(UUID id, String userId, byte[] rawContent) {
+        DocumentMetadata doc = findDocById(id, userId);
 
         if (doc.getStatus() == DocumentStatus.PROCESSING) {
             throw new DocumentProcessingException("Analysis already in progress for document: " + id);
@@ -75,11 +95,23 @@ public class DocumentService {
         doc.setStatus(DocumentStatus.PROCESSING);
         repository.saveAndFlush(doc);
 
-        // OCR retrieved raw text. Only for testing purpose
-        String rawContent = "The company revenue for Q4 2023 was $12.5 million. Total expenses were $8.2 million.";
+        asyncDocumentService.docAnalysis(doc, rawContent, userId);
+    }
 
-        asyncDocumentService.docAnalysisAsync(doc, rawContent, userId);
+    @Transactional
+    public DocumentResponseDTO reanalyzeDocument(UUID id) {
+        String userId = auth.username();
+        DocumentMetadata doc = findDocById(id, userId);
 
+        if (doc.getStatus() != DocumentStatus.FAILED && doc.getStatus() != DocumentStatus.PENDING) {
+            log.warn("Attempting reanalysis on Document {} in state {}", id, doc.getStatus());
+            return mapToDTO(doc);
+        }
+
+        doc.setStatus(DocumentStatus.PENDING);
+        repository.saveAndFlush(doc);
+
+        s3EventPublisher.sendToSQS(userId, id, doc.getFileName());
         return mapToDTO(doc);
     }
 
@@ -92,5 +124,16 @@ public class DocumentService {
                 .uploadedAt(entity.getUploadedAt())
                 .status(entity.getStatus())
                 .build();
+    }
+
+    private DocumentMetadata findDocById(UUID id) {
+        String userId = auth.username();
+        return repository.findByIdAndUserId(id, userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Document not found with id: " + id + " for user: " + userId));
+    }
+
+    private DocumentMetadata findDocById(UUID id, String userId) {
+        return repository.findByIdAndUserId(id, userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Document not found with id: " + id + " for user: " + userId));
     }
 }

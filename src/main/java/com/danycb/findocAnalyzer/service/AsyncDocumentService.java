@@ -15,22 +15,26 @@ import java.time.Instant;
 @Service
 @RequiredArgsConstructor
 public class AsyncDocumentService {
-    private final DocumentAnalyzerEngine documentAnalyzerEngine;
+    private final AiEngine aiEngine;
     private final DocumentMetadataRepository repository;
     private final VectorStoreService vectorStoreService;
+    private final FileService fileService;
 
     @Async
-    public void docAnalysisAsync(DocumentMetadata doc, String rawContent, String userId) {
+    public void docAnalysis(DocumentMetadata doc, byte[] rawContent, String userId) {
         try {
             log.debug("Initiating analysis for file: {} in Worker thread: {}", doc.getFileName(), Thread.currentThread().getName());
+            doc.setStatus(DocumentStatus.PROCESSING);
 
             String metadata = String.format("File: %s, Type: %s, Size: %d bytes",
                     doc.getFileName(), doc.getContentType(), doc.getFileSize());
 
-            String contentSnippet = rawContent.substring(0, Math.min(1500, rawContent.length()));
-            String aiSummary = documentAnalyzerEngine.analyzeDeepContent(
+            String content = fileService.extractTextFromPdf(rawContent);
+            String contentSnippet = content.substring(0, Math.min(1500, content.length()));
+            String aiSummary = aiEngine.analyzeDeepContent(
                     metadata, contentSnippet);
-            vectorStoreService.ingestDocument(rawContent, doc.getFileName(), userId);
+
+            vectorStoreService.ingestDocument(content, doc.getFileName(), userId);
             updateDocumentSuccess(doc, aiSummary);
 
         } catch (Exception e) {

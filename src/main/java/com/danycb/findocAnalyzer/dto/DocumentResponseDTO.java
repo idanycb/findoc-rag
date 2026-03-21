@@ -18,4 +18,6 @@ public class DocumentResponseDTO {
     private String contentType;
     private Instant uploadedAt;
     private DocumentStatus status;
+
+    private String uploadUrl; // Direct-to-S3 Upload
 }

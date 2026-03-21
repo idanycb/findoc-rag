@@ -18,6 +18,9 @@ public class DocumentMetadata {
     private UUID id;
 
     @Column(nullable = false)
+    private String userId;
+
+    @Column(nullable = false)
     private String fileName;
 
     private Long fileSize;

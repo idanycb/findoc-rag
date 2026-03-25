@@ -17,6 +17,7 @@ public class DocumentResponseDTO {
     private Long fileSize;
     private String contentType;
     private Instant uploadedAt;
+    private String aiSummary;
     private DocumentStatus status;
 
     private String uploadUrl; // Direct-to-S3 Upload

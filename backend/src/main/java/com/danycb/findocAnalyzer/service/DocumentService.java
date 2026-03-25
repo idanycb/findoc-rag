@@ -123,6 +123,7 @@ public class DocumentService {
                 .contentType(entity.getContentType())
                 .uploadedAt(entity.getUploadedAt())
                 .status(entity.getStatus())
+                .aiSummary(entity.getAiSummary())
                 .build();
     }
 

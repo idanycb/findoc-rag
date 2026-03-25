@@ -75,9 +75,12 @@ public class DocumentService {
 
     @Transactional
     public void deleteDocument(UUID id) {
-        DocumentMetadata doc = findDocById(id);
+        String userId = auth.username();
+        DocumentMetadata doc = findDocById(id, userId);
         repository.delete(doc);
         log.warn("Metadata for {} removed.", id);
+
+        s3Service.deleteFile(userId, id, doc.getFileName());
     }
 
     @Transactional

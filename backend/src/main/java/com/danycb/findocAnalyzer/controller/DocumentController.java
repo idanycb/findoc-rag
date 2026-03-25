@@ -36,6 +36,12 @@ public class DocumentController {
         return ResponseEntity.ok(documentService.getDocumentById(id));
     }
 
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteDocument(@PathVariable UUID id) {
+        documentService.deleteDocument(id);
+    }
+
     @GetMapping("/{id}/view")
     public ResponseEntity<Map<String, Object>> getViewUrl(@PathVariable UUID id) {
         String url = documentService.generateViewUrl(id);

@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.core.ResponseBytes;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
@@ -77,6 +78,24 @@ public class S3Service {
         ResponseBytes<GetObjectResponse> responseBytes = s3Client.getObjectAsBytes(request);
 
         return responseBytes.asByteArray();
+    }
+
+    public void deleteFile(String userId, UUID docId, String fileName) {
+        String key = buildS3Key(userId, docId, fileName);
+        deleteObjectByKey(key);
+    }
+
+    public void deleteObjectByKey(String key) {
+        log.info("Requesting S3 deletion for key: {}",key);
+
+        try {
+            s3Client.deleteObject(DeleteObjectRequest.builder()
+                    .bucket(bucketName)
+                    .key(key)
+                    .build());
+        } catch (Exception e) {
+            log.error("Failed to delete S3 object {}: {}", key, e.getMessage());
+        }
     }
 
     public String buildS3Key(String userId, UUID docId, String fileName) {

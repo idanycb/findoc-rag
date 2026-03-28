@@ -1,6 +1,6 @@
-package com.danycb.findocAnalyzer.controller;
+package com.danycb.findocAnalyzer.llm;
 
-import com.danycb.findocAnalyzer.service.ChatService;
+import com.danycb.findocAnalyzer.security.UserPrincipal;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -18,13 +18,13 @@ public class ChatController {
     private final ChatService chatService;
 
     @PostMapping
-    public ResponseEntity<Map<String, String>> ask(@RequestBody Map<String, String> payload, @AuthenticationPrincipal String username) {
+    public ResponseEntity<Map<String, String>> ask(@RequestBody Map<String, String> payload, @AuthenticationPrincipal UserPrincipal principal) {
         String question = payload.get("question");
         if (question == null || question.isBlank()) {
             return ResponseEntity.badRequest().body(Map.of("error", "Questions is required"));
         }
 
-        String answer = chatService.answerQuestion(question, username);
+        String answer = chatService.answerQuestion(question, principal.getTenantId());
         return ResponseEntity.ok(Map.of("answer", answer));
     }
 }

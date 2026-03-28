@@ -1,4 +1,4 @@
-package com.danycb.findocAnalyzer.service;
+package com.danycb.findocAnalyzer.llm;
 
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.embedding.EmbeddingModel;
@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static dev.langchain4j.store.embedding.filter.MetadataFilterBuilder.metadataKey;
@@ -21,16 +22,16 @@ public class ChatService {
     private final EmbeddingStore<TextSegment> embeddingStore;
     private final AiEngine aiEngine;
 
-    public String answerQuestion(String question, String currentUserId) {
+    public String answerQuestion(String question, UUID tenantId) {
         var questionEmbedding = embeddingModel.embed(question).content();
 
-        Filter userIdFilter = metadataKey("userId").isEqualTo(currentUserId);
+        Filter tenantIdFilter = metadataKey("tenant_id").isEqualTo(tenantId);
 
         EmbeddingSearchRequest embeddingSearchRequest = EmbeddingSearchRequest.builder()
                 .queryEmbedding(questionEmbedding)
                 .maxResults(3)
                 .minScore(0.6)
-                .filter(userIdFilter)
+                .filter(tenantIdFilter)
                 .build();
 
         List<EmbeddingMatch<TextSegment>> matches = embeddingStore.search(embeddingSearchRequest).matches();

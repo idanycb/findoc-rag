@@ -1,10 +1,9 @@
-package com.danycb.findocAnalyzer.service;
+package com.danycb.findocAnalyzer.s3;
 
+import com.danycb.findocAnalyzer.document.DocumentService;
 import io.awspring.cloud.sqs.annotation.SqsListener;
-import io.awspring.cloud.sqs.operations.SqsTemplate;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.eventnotifications.s3.model.S3EventNotification;
 import software.amazon.awssdk.eventnotifications.s3.model.S3EventNotificationRecord;
@@ -21,7 +20,8 @@ public class S3EventConsumer {
     private final S3Service s3Service;
     private final DocumentService documentService;
 
-    private record FileKeyParts(String userId, UUID docId) {}
+    private record FileKeyParts(UUID tenantId, UUID docId) {
+    }
 
     @SqsListener(value = "${AWS_SQS_QUEUE_NAME}")
     private void onS3Event(String messageJson) {
@@ -47,7 +47,7 @@ public class S3EventConsumer {
             FileKeyParts parts = extractPartsFromKey(decodedKey);
 
             byte[] fileBytes = s3Service.downloadFile(decodedKey);
-            documentService.analyzeDocument(parts.docId, parts.userId, fileBytes);
+            documentService.analyzeDocument(parts.docId, parts.tenantId, fileBytes);
         } catch (Exception e) {
             log.error("SQS Pipeline Failure: {}", e.getMessage());
             throw new RuntimeException("Re-queuing message for retry", e);
@@ -62,12 +62,12 @@ public class S3EventConsumer {
                 throw new IllegalArgumentException();
             }
 
-            String userId = parts[1];
+            UUID tenantId = UUID.fromString(parts[1]);
             UUID fileId = UUID.fromString(parts[2]);
 
-            return new FileKeyParts(userId, fileId);
+            return new FileKeyParts(tenantId, fileId);
         } catch (Exception e) {
-            throw new IllegalArgumentException("Invalid S3 Key format. Expected files/{userId}/{UUID}/filename");
+            throw new IllegalArgumentException("Invalid S3 Key format. Expected files/{tenantId}/{UUID}/filename");
         }
     }
 }

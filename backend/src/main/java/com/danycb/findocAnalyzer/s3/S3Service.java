@@ -1,4 +1,4 @@
-package com.danycb.findocAnalyzer.service;
+package com.danycb.findocAnalyzer.s3;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,8 +30,8 @@ public class S3Service {
     @Value("${AWS_S3_BUCKET_NAME}")
     public String bucketName;
 
-    public String generatePresignedUploadUrl(String userId, UUID docId, String fileName, String contentType) {
-        String s3Key = buildS3Key(userId, docId, fileName);
+    public String generatePresignedUploadUrl(UUID tenantId, UUID docId, String fileName, String contentType) {
+        String s3Key = buildS3Key(tenantId, docId, fileName);
         log.debug("Generating upload url for key: {}", s3Key);
 
         PutObjectRequest putObjectRequest = PutObjectRequest.builder()
@@ -49,8 +49,8 @@ public class S3Service {
         return presignedRequest.url().toString();
     }
 
-    public String generatePresignedViewUrl(String userId, UUID docId, String fileName) {
-        String s3Key = buildS3Key(userId, docId, fileName);
+    public String generatePresignedViewUrl(UUID tenantId, UUID docId, String fileName) {
+        String s3Key = buildS3Key(tenantId, docId, fileName);
         log.debug("Generating view url for key: {}", s3Key);
 
         GetObjectRequest request = GetObjectRequest.builder()
@@ -68,7 +68,7 @@ public class S3Service {
     }
 
     public byte[] downloadFile(String s3Key) {
-        log.info("Downloading file from S3; {}",s3Key);
+        log.info("Downloading file from S3; {}", s3Key);
 
         GetObjectRequest request = GetObjectRequest.builder()
                 .bucket(bucketName)
@@ -80,13 +80,13 @@ public class S3Service {
         return responseBytes.asByteArray();
     }
 
-    public void deleteFile(String userId, UUID docId, String fileName) {
-        String key = buildS3Key(userId, docId, fileName);
+    public void deleteFile(UUID tenantId, UUID docId, String fileName) {
+        String key = buildS3Key(tenantId, docId, fileName);
         deleteObjectByKey(key);
     }
 
     public void deleteObjectByKey(String key) {
-        log.info("Requesting S3 deletion for key: {}",key);
+        log.info("Requesting S3 deletion for key: {}", key);
 
         try {
             s3Client.deleteObject(DeleteObjectRequest.builder()
@@ -98,7 +98,7 @@ public class S3Service {
         }
     }
 
-    public String buildS3Key(String userId, UUID docId, String fileName) {
-        return String.format("files/%s/%s/%s", userId, docId, fileName);
+    public String buildS3Key(UUID tenantId, UUID docId, String fileName) {
+        return String.format("files/%s/%s/%s", tenantId, docId, fileName);
     }
 }

@@ -1,4 +1,4 @@
-package com.danycb.findocAnalyzer.service;
+package com.danycb.findocAnalyzer.s3;
 
 import io.awspring.cloud.sqs.operations.SqsTemplate;
 import lombok.RequiredArgsConstructor;
@@ -18,8 +18,8 @@ public class S3EventPublisher {
     @Value("${AWS_SQS_QUEUE_NAME}")
     private String queueName;
 
-    public void sendToSQS(String userId, UUID docId, String fileName) {
-        String s3Key = s3Service.buildS3Key(userId, docId, fileName);
+    public void sendToSQS(UUID tenantId, UUID docId, String fileName) {
+        String s3Key = s3Service.buildS3Key(tenantId, docId, fileName);
         String bucketName = s3Service.bucketName;
 
         String syntheticS3EventJson = String.format("""

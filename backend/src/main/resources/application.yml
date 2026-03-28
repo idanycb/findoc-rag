@@ -14,22 +14,28 @@ spring:
         queue-not-found-strategy: fail
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/findoc_analyzer_db
-    username: danycb
-    password: super_secret
+    url: jdbc:postgresql://localhost:5432/${POSTGRES_DB}
+    username: ${POSTGRES_USER}
+    password: ${POSTGRES_PASSWORD}
     driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: 10
       minimum-idle: 2
 
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    clean-disabled: false
+
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect # Not required but good practice
     hibernate:
-      ddl-auto: update
-    show-sql: true
+      ddl-auto: none
+    show-sql: false
     properties:
       hibernate:
-        format_sql: true
+        format_sql: false
     open-in-view: false
 
   task:
@@ -53,6 +59,9 @@ langchain4j:
 
 logging:
   level:
-    org.springframework.web: INFO
-    org.hibernate.sql: DEBUG
+    org.springframework:web: INFO
+    org.springframework.orm.jpa: ERROR
+    com.zaxxer.hikari: ERROR
+    org.hibernate: ERROR
     com.enterprise: DEBUG
+  exception-conversion-word: "%wEx{short}"

@@ -1,15 +1,15 @@
-package com.danycb.findocAnalyzer.dto;
+package com.danycb.findocAnalyzer.common.dto;
 
-import com.danycb.findocAnalyzer.model.DocumentStatus;
+import com.danycb.findocAnalyzer.document.DocumentStatus;
 import lombok.Builder;
-import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 
 import java.time.Instant;
 import java.util.UUID;
 
-@Getter @Setter
+@Getter
+@Setter
 @Builder
 public class DocumentResponseDTO {
     private UUID id;

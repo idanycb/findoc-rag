@@ -1,4 +1,4 @@
-package com.danycb.findocAnalyzer.exception;
+package com.danycb.findocAnalyzer.common.exception;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

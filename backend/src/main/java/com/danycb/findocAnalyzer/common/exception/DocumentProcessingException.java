@@ -1,4 +1,4 @@
-package com.danycb.findocAnalyzer.exception;
+package com.danycb.findocAnalyzer.common.exception;
 
 /**
  * Thrown when a document is in an invalid state for the requested operation.

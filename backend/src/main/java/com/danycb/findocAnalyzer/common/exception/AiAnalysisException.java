@@ -1,4 +1,4 @@
-package com.danycb.findocAnalyzer.exception;
+package com.danycb.findocAnalyzer.common.exception;
 
 /**
  * Thrown when the external AI provider fails or returns invalid data.

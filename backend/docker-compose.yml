@@ -2,17 +2,19 @@ name: findoc-analyzer
 
 services:
   postgres:
-    image: postgres:18-alpine
+    image: pgvector/pgvector:0.8.2-pg18-trixie
     container_name: financial_db
+    env_file:
+      - .env
     environment:
-      POSTGRES_USER: danycb
-      POSTGRES_PASSWORD: super_secret
-      POSTGRES_DB: findoc_analyzer_db
+      - POSTGRES_USER
+      - POSTGRES_PASSWORD
+      - POSTGRES_DB
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql
     restart: unless-stopped
-    
+
 volumes:
-  postgres_data:
+  pgdata:

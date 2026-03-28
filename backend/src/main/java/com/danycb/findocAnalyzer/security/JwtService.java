@@ -1,4 +1,4 @@
-package com.danycb.findocAnalyzer.service;
+package com.danycb.findocAnalyzer.security;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
 import java.util.Date;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -19,31 +20,18 @@ public class JwtService {
         this.key = Keys.hmacShaKeyFor(secret.getBytes());
     }
 
-    public String generateToken(String username) {
+    public String generateToken(String username, UUID userId, UUID tenantId) {
         return Jwts.builder()
                 .subject(username)
+                .claim("userId", userId.toString())
+                .claim("tenantId", tenantId.toString())
                 .issuedAt(new Date())
-                .expiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 24)) // 24h
+                .expiration(new Date(System.currentTimeMillis() + 1000 * 60 * 30)) // 30min
                 .signWith(key)
                 .compact();
     }
 
-    public String extractUsername(String token) {
-        Claims payload = extractPayload(token);
-
-        if (!isExpired(payload)) {
-            return payload.getSubject();
-        } else {
-            return null;
-        }
-    }
-
-    private boolean isExpired(Claims payload) {
-        Date expiration = payload.getExpiration();
-        return expiration.before(new Date());
-    }
-
-    private Claims extractPayload(String token) {
+    public Claims extractPayload(String token) {
         return Jwts.parser()
                 .verifyWith(key)
                 .build()

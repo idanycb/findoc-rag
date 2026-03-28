@@ -1,33 +1,35 @@
-package com.danycb.findocAnalyzer.controller;
+package com.danycb.findocAnalyzer.security;
 
-import com.danycb.findocAnalyzer.service.JwtService;
+import com.danycb.findocAnalyzer.user.User;
+import com.danycb.findocAnalyzer.user.UserRepository;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/auth")
 public class AuthController {
     private final JwtService jwtService;
+    private final UserRepository userRepo;
+    private final PasswordEncoder passwordEncoder;
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody AuthRequest request) {
-        if ("admin".equals(request.getUsername()) && "password".equals(request.getPassword())) {
-            String token = jwtService.generateToken(request.getUsername());
-            return ResponseEntity.ok(new AuthResponse(token));
-        }
+        User user = userRepo.findByUsername(request.getUsername())
+                .filter(u -> passwordEncoder.matches(request.getPassword(), u.getPassword()))
+                .orElseThrow(() -> new BadCredentialsException("Invalid username or password"));
 
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Invalid credentials."));
+        String token = jwtService.generateToken(user.getUsername(), user.getId(), user.getTenantId());
+        return ResponseEntity.ok(new AuthResponse(token));
     }
 
     // --- DTO for Auth ---

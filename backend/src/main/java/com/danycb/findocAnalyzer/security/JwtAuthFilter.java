@@ -1,6 +1,6 @@
 package com.danycb.findocAnalyzer.security;
 
-import com.danycb.findocAnalyzer.service.JwtService;
+import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -10,11 +10,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.UUID;
 
 @Slf4j
 @Component
@@ -24,28 +24,20 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response, @NonNull FilterChain filterChain) throws ServletException, IOException {
-        try {
-            final String authHeader = request.getHeader("Authorization");
-            final String jwt;
-            final String username;
+        final String authHeader = request.getHeader("Authorization");
 
-            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                filterChain.doFilter(request, response);
-                return;
-            }
-
-            jwt = authHeader.substring(7);
-
-            username = jwtService.extractUsername(jwt);
-
-            if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(username, null, null);
-                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                SecurityContextHolder.getContext().setAuthentication(authToken);
-            }
-        } catch (Exception e) {
-            throw new RuntimeException(e);
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            filterChain.doFilter(request, response);
+            return;
         }
+
+        String jwt = authHeader.substring(7);
+        Claims payload = jwtService.extractPayload(jwt);
+
+        UserPrincipal principal = new UserPrincipal(payload.getSubject(), UUID.fromString(payload.get("userId", String.class)), UUID.fromString(payload.get("tenantId", String.class)));
+
+        UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(principal, null, null);
+        SecurityContextHolder.getContext().setAuthentication(authToken);
         filterChain.doFilter(request, response);
     }
 }

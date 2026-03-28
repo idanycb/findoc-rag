@@ -1,4 +1,4 @@
-package com.danycb.findocAnalyzer.model;
+package com.danycb.findocAnalyzer.document;
 
 public enum DocumentStatus {
     PENDING,

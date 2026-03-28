@@ -1,4 +1,4 @@
-package com.danycb.findocAnalyzer.service;
+package com.danycb.findocAnalyzer.document;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pdfbox.Loader;
@@ -10,7 +10,7 @@ import java.io.IOException;
 
 @Slf4j
 @Service
-public class FileService {
+public class DocParserService {
 
     public String extractTextFromPdf(byte[] pdfBytes) {
         log.info("Starting text extraction from PDF bytes (Size: {} bytes)", pdfBytes.length);

@@ -1,8 +1,7 @@
-package com.danycb.findocAnalyzer.controller;
+package com.danycb.findocAnalyzer.document;
 
-import com.danycb.findocAnalyzer.dto.DocumentRequestDTO;
-import com.danycb.findocAnalyzer.dto.DocumentResponseDTO;
-import com.danycb.findocAnalyzer.service.DocumentService;
+import com.danycb.findocAnalyzer.common.dto.DocumentRequestDTO;
+import com.danycb.findocAnalyzer.common.dto.DocumentResponseDTO;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;

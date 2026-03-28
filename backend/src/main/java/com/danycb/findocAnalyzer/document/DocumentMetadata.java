@@ -1,4 +1,4 @@
-package com.danycb.findocAnalyzer.model;
+package com.danycb.findocAnalyzer.document;
 
 import jakarta.persistence.*;
 import lombok.*;
@@ -8,17 +8,18 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "document_metadata")
-@Getter @Setter
+@Builder
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 public class DocumentMetadata {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
     @Column(nullable = false)
-    private String userId;
+    private UUID tenantId;
 
     @Column(nullable = false)
     private String fileName;

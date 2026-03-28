@@ -1,6 +1,5 @@
-package com.danycb.findocAnalyzer.repository;
+package com.danycb.findocAnalyzer.document;
 
-import com.danycb.findocAnalyzer.model.DocumentMetadata;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -10,7 +9,7 @@ import java.util.UUID;
 
 @Repository
 public interface DocumentMetadataRepository extends JpaRepository<DocumentMetadata, UUID> {
-    List<DocumentMetadata> findAllByUserId(String userId);
+    List<DocumentMetadata> findAllByTenantId(UUID tenantId);
 
-    Optional<DocumentMetadata> findByIdAndUserId(UUID id, String userId);
+    Optional<DocumentMetadata> findByIdAndTenantId(UUID id, UUID tenantId);
 }

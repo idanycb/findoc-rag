@@ -1,6 +1,16 @@
 name: findoc-analyzer
 
 services:
+  unstructured:
+    image: downloads.unstructured.io/unstructured-io/unstructured-api:latest
+    container_name: unstructured
+    ports:
+      - "8000:8000"
+    environment:
+      - UNSTRUCTURED_MEMORY_FREE_MINIMUM_MB=0
+      - PORT=8000
+    restart: unless-stopped
+
   postgres:
     image: pgvector/pgvector:0.8.2-pg18-trixie
     container_name: financial_db

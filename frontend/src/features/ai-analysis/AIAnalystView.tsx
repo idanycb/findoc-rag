@@ -9,6 +9,9 @@ import {
   useState,
 } from 'react';
 import { Bot, Send, Sparkles, Trash2 } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkBreaks from 'remark-breaks';
+import remarkGfm from 'remark-gfm';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import { apiCall } from '@/lib/api';
@@ -27,7 +30,7 @@ type ChatResponse = {
   error?: string;
 };
 
-interface AIAnalystViewProps {
+interface RagAssistantViewProps {
   token: string;
 }
 
@@ -38,7 +41,24 @@ const createMessage = (role: MessageRole, content: string): ChatMessage => ({
   createdAt: Date.now(),
 });
 
-export const AIAnalystView = ({ token }: AIAnalystViewProps) => {
+const getMarkdownClassName = (role: MessageRole) =>
+  [
+    'text-sm font-medium leading-relaxed break-words',
+    '[&_p]:mb-3 [&_p:last-child]:mb-0',
+    '[&_ul]:my-3 [&_ul]:list-disc [&_ul]:pl-5',
+    '[&_ol]:my-3 [&_ol]:list-decimal [&_ol]:pl-5',
+    '[&_li]:my-1',
+    '[&_h1]:mb-2 [&_h1]:text-base [&_h1]:font-black',
+    '[&_h2]:mb-2 [&_h2]:text-sm [&_h2]:font-black',
+    '[&_pre]:my-3 [&_pre]:overflow-x-auto [&_pre]:rounded-xl [&_pre]:p-3',
+    '[&_code]:rounded [&_code]:px-1.5 [&_code]:py-0.5',
+    '[&_a]:underline [&_a]:underline-offset-4',
+    role === 'user'
+      ? '[&_a]:text-white [&_pre]:bg-black/20 [&_code]:bg-black/20'
+      : '[&_a]:text-neutral-900 [&_pre]:bg-neutral-100 [&_code]:bg-neutral-100',
+  ].join(' ');
+
+export const RagAssistantView = ({ token }: RagAssistantViewProps) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [question, setQuestion] = useState('');
   const [isAsking, setIsAsking] = useState(false);
@@ -105,13 +125,13 @@ export const AIAnalystView = ({ token }: AIAnalystViewProps) => {
       const answer = data.answer?.trim();
 
       if (!answer) {
-        throw new Error(data.error || 'No answer returned from AI analyst');
+        throw new Error(data.error || 'No answer returned from assistant');
       }
 
       setMessages((prev) => [...prev, createMessage('assistant', answer)]);
     } catch (err) {
       const message =
-        err instanceof Error ? err.message : 'Failed to reach AI analyst';
+        err instanceof Error ? err.message : 'Failed to reach assistant';
       setError(message);
       setMessages((prev) => [
         ...prev,
@@ -133,25 +153,25 @@ export const AIAnalystView = ({ token }: AIAnalystViewProps) => {
   };
 
   return (
-    <Card className="p-0 h-full min-h-0 overflow-hidden border-none shadow-2xl bg-white/90 backdrop-blur-sm flex flex-col">
-      <div className="border-b border-slate-100 px-8 py-6 flex flex-wrap gap-4 items-center justify-between">
-        <div className="flex items-center gap-3 text-slate-700">
-          <div className="w-10 h-10 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+    <Card className="flex h-full min-h-0 flex-col overflow-hidden border-none bg-white/95 p-0 shadow-2xl backdrop-blur-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-neutral-200 px-4 py-4 sm:px-6 sm:py-5">
+        <div className="flex items-center gap-3 text-neutral-800">
+          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-neutral-200 text-neutral-900">
             <Sparkles size={18} />
           </div>
           <div>
             <h3 className="text-base font-black tracking-tight">
-              Chat With AI Analyst
+              Chat With RAG Assistant
             </h3>
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-              Financial Q&A grounded in your uploaded documents
+            <p className="text-[10px] font-bold uppercase tracking-widest text-neutral-500 sm:text-xs">
+              Grounded answers from your uploaded knowledge base
             </p>
           </div>
         </div>
 
         <Button
           variant="ghost"
-          className="px-4 py-2 text-slate-500"
+          className="px-3 py-2 text-neutral-600"
           onClick={() => {
             setMessages([]);
             setError(null);
@@ -162,20 +182,19 @@ export const AIAnalystView = ({ token }: AIAnalystViewProps) => {
         </Button>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto px-8 py-7 bg-linear-to-b from-slate-50/60 to-white">
+      <div className="flex-1 min-h-0 overflow-y-auto bg-linear-to-b from-neutral-100/60 to-white px-4 py-5 sm:px-6 sm:py-6">
         {!hasMessages && (
-          <div className="h-full flex items-center justify-center">
+          <div className="flex h-full items-center justify-center">
             <div className="max-w-xl text-center">
-              <div className="mx-auto mb-4 w-14 h-14 rounded-2xl bg-indigo-100 text-indigo-600 flex items-center justify-center">
+              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-neutral-200 text-neutral-800">
                 <Bot size={24} />
               </div>
-              <h4 className="text-xl font-black text-slate-800 mb-3">
-                Ask Anything About Your Financial Docs
+              <h4 className="mb-3 text-xl font-black text-neutral-900">
+                Ask Anything About Your Documents
               </h4>
-              <p className="text-sm text-slate-500 font-medium leading-relaxed">
-                Try: &quot;Summarize the highest risk items across all uploaded
-                reports&quot; or &quot;What changed between the latest and
-                previous statements?&quot;
+              <p className="text-sm font-medium leading-relaxed text-neutral-600">
+                Try: &quot;What is the document about?&quot; or &quot;What are
+                the key insights?&quot;
               </p>
             </div>
           </div>
@@ -185,30 +204,32 @@ export const AIAnalystView = ({ token }: AIAnalystViewProps) => {
           {messages.map((message) => (
             <div
               key={message.id}
-              className={`max-w-[85%] rounded-3xl px-5 py-4 shadow-sm ${
+              className={`max-w-[90%] rounded-3xl px-4 py-4 shadow-sm sm:max-w-[85%] sm:px-5 ${
                 message.role === 'user'
-                  ? 'ml-auto bg-indigo-600 text-white'
-                  : 'mr-auto bg-white border border-slate-100 text-slate-700'
+                  ? 'ml-auto bg-neutral-900 text-white'
+                  : 'mr-auto border border-neutral-200 bg-white text-neutral-800'
               }`}
             >
-              <p className="text-[10px] font-black uppercase tracking-[0.16em] opacity-70 mb-2">
-                {message.role === 'user' ? 'You' : 'AI Analyst'}
+              <p className="mb-2 text-[10px] font-black uppercase tracking-[0.16em] opacity-70">
+                {message.role === 'user' ? 'You' : 'Assistant'}
               </p>
-              <p className="text-sm leading-relaxed whitespace-pre-wrap wrap-break-word font-medium">
-                {message.content}
-              </p>
+              <div className={getMarkdownClassName(message.role)}>
+                <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>
+                  {message.content}
+                </ReactMarkdown>
+              </div>
             </div>
           ))}
 
           {isAsking && (
-            <div className="max-w-[85%] mr-auto bg-white border border-slate-100 text-slate-700 rounded-3xl px-5 py-4 shadow-sm">
-              <p className="text-[10px] font-black uppercase tracking-[0.16em] opacity-70 mb-2">
-                AI Analyst
+            <div className="mr-auto max-w-[90%] rounded-3xl border border-neutral-200 bg-white px-4 py-4 text-neutral-800 shadow-sm sm:max-w-[85%] sm:px-5">
+              <p className="mb-2 text-[10px] font-black uppercase tracking-[0.16em] opacity-70">
+                Assistant
               </p>
               <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-slate-300 animate-pulse" />
-                <span className="w-2 h-2 rounded-full bg-slate-300 animate-pulse [animation-delay:120ms]" />
-                <span className="w-2 h-2 rounded-full bg-slate-300 animate-pulse [animation-delay:240ms]" />
+                <span className="h-2 w-2 animate-pulse rounded-full bg-neutral-400" />
+                <span className="h-2 w-2 animate-pulse rounded-full bg-neutral-400 [animation-delay:120ms]" />
+                <span className="h-2 w-2 animate-pulse rounded-full bg-neutral-400 [animation-delay:240ms]" />
               </div>
             </div>
           )}
@@ -219,36 +240,35 @@ export const AIAnalystView = ({ token }: AIAnalystViewProps) => {
 
       <form
         onSubmit={submitQuestion}
-        className="border-t border-slate-100 p-6 bg-white"
+        className="border-t border-neutral-200 bg-white p-4 sm:p-6"
       >
-        <div className="rounded-3xl border border-slate-200 bg-slate-50 py-4 px-6 focus-within:ring-2 ring-indigo-100 transition-all relative">
+        <div className="relative rounded-3xl border border-neutral-300 bg-neutral-100 px-4 py-3 transition-all focus-within:ring-2 ring-neutral-400 sm:px-5 sm:py-4">
           <textarea
             ref={composerRef}
             value={question}
             onChange={(event) => setQuestion(event.target.value)}
             onKeyDown={handleComposerKeyDown}
             rows={1}
-            className="w-full min-h-4 max-h-24 resize-none bg-transparent outline-none text-sm text-slate-700 placeholder:text-slate-400 font-medium overflow-y-hidden transition-[height]"
+            className="w-full min-h-4 max-h-24 resize-none bg-transparent text-sm font-medium text-neutral-800 outline-none placeholder:text-neutral-500 overflow-y-hidden transition-[height] sm:pr-32"
             placeholder={
-              'Ask about trends, anomalies, compliance concerns, or executive summaries...\n\nPress Enter to send, Shift+Enter for newline.'
+              'Ask about summaries, trends, key facts, or comparisons...\n\nPress Enter to send, Shift+Enter for newline.'
             }
             disabled={isAsking || isTokenUnavailable}
           />
-          <Button
-            type="submit"
-            className="px-6 py-3 absolute right-2 bottom-2"
-            loading={isAsking}
-            disabled={isAsking || !question.trim() || isTokenUnavailable}
-          >
-            <Send size={16} /> Ask Analyst
-          </Button>
-        </div>
-        <div className="-mb-8 mt-4 flex items-center justify-between gap-4 px-4">
-          <p className="text-[11px] font-semibold text-slate-400"></p>
+          <div className="mt-3 flex sm:absolute sm:bottom-2 sm:right-2 sm:mt-0">
+            <Button
+              type="submit"
+              className="w-full px-5 py-2.5 sm:w-auto"
+              loading={isAsking}
+              disabled={isAsking || !question.trim() || isTokenUnavailable}
+            >
+              <Send size={16} /> Ask
+            </Button>
+          </div>
         </div>
 
         {error && (
-          <p className="text-xs font-bold text-rose-600 mt-3" role="alert">
+          <p className="mt-3 text-xs font-bold text-neutral-700" role="alert">
             {error}
           </p>
         )}

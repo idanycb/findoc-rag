@@ -2,7 +2,7 @@
 
 import { deleteCookie, getCookie } from '@/lib/api';
 import { AuthContextType } from '@/lib/types';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   createContext,
   ReactNode,
@@ -18,6 +18,11 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [jwtToken, setJwtToken] = useState<string>(() => getCookie('jwtToken'));
   const router = useRouter();
+  const pathname = usePathname();
+
+  useEffect(() => {
+    setJwtToken(getCookie('jwtToken'));
+  }, [pathname]);
 
   useEffect(() => {
     const readToken = () => setJwtToken(getCookie('jwtToken'));

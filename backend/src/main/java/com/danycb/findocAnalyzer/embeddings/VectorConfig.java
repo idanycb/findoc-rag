@@ -26,7 +26,9 @@ public class VectorConfig {
                 .columnDefinitions(Arrays.asList(
                         MetadataColumDefinition.from("tenant_id UUID").getFullDefinition(),
                         MetadataColumDefinition.from("chunk_index INT").getFullDefinition(),
-                        MetadataColumDefinition.from("document_id UUID").getFullDefinition()
+                        MetadataColumDefinition.from("document_id UUID").getFullDefinition(),
+                        MetadataColumDefinition.from("file_name VARCHAR(255)").getFullDefinition(),
+                        MetadataColumDefinition.from("page INT").getFullDefinition()
                 ))
                 .build();
 

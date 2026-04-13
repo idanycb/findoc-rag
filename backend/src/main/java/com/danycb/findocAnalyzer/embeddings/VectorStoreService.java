@@ -26,26 +26,31 @@ public class VectorStoreService {
     private final EmbeddingModel embeddingModel;
     private final EmbeddingStore<TextSegment> embeddingStore;
 
-    public void ingestDocument(String content, UUID docId, UUID tenantId) {
+    public void ingestDocument(List<String> allPages, UUID docId, String fileName, UUID tenantId) {
         Metadata baseMetadata = new Metadata();
         baseMetadata.put("tenant_id", tenantId.toString());
+        baseMetadata.put("file_name", fileName);
         baseMetadata.put("document_id", docId.toString());
-        Map<String, Object> baseMDHashMap = baseMetadata.toMap();
+        List<TextSegment> segments = new ArrayList<>(allPages.size() * 4);
+        DocumentSplitter splitter = DocumentSplitters.recursive(600, 80);
 
-        Document document = Document.from(content);
-        DocumentSplitter splitter = DocumentSplitters.recursive(500, 50);
-        List<TextSegment> rawSegments = splitter.split(document);
+        int page_num = 1;
+        for (String page : allPages) {
+            baseMetadata.put("page", page_num++);
+            Map<String, Object> baseMDHashMap = baseMetadata.toMap();
 
-        List<TextSegment> segments = new ArrayList<>(rawSegments.size());
+            Document document = Document.from(page);
+            List<TextSegment> rawSegments = splitter.split(document);
 
-        int index = 0;
-        for (TextSegment segment : rawSegments) {
-            Metadata metadata = new Metadata(baseMDHashMap);
-            metadata.put("chunk_index", index++);
-
-            segments.add(new TextSegment(segment.text(), metadata));
+            int chunk_idx = 0;
+            for (TextSegment segment : rawSegments) {
+                Metadata metadata = new Metadata(baseMDHashMap);
+                metadata.put("chunk_index", chunk_idx++);
+                segments.add(new TextSegment(segment.text(), metadata));
+            }
         }
 
+        if (segments.isEmpty()) return;
         embeddingStore.addAll(embeddingModel.embedAll(segments).content(), segments);
     }
 

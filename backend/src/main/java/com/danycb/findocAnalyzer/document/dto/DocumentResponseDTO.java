@@ -1,4 +1,4 @@
-package com.danycb.findocAnalyzer.common.dto;
+package com.danycb.findocAnalyzer.document.dto;
 
 import com.danycb.findocAnalyzer.document.DocumentStatus;
 import lombok.Builder;

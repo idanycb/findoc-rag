@@ -1,9 +1,11 @@
 package com.danycb.findocAnalyzer.document;
 
-import com.danycb.findocAnalyzer.common.dto.DocumentRequestDTO;
-import com.danycb.findocAnalyzer.common.dto.DocumentResponseDTO;
 import com.danycb.findocAnalyzer.common.exception.DocumentProcessingException;
 import com.danycb.findocAnalyzer.common.exception.ResourceNotFoundException;
+import com.danycb.findocAnalyzer.docParser.DocParserService;
+import com.danycb.findocAnalyzer.docParser.UnstructuredResponseDTO;
+import com.danycb.findocAnalyzer.document.dto.DocumentRequestDTO;
+import com.danycb.findocAnalyzer.document.dto.DocumentResponseDTO;
 import com.danycb.findocAnalyzer.embeddings.VectorStoreService;
 import com.danycb.findocAnalyzer.s3.S3EventPublisher;
 import com.danycb.findocAnalyzer.s3.S3Service;
@@ -12,7 +14,11 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
+import reactor.util.retry.Retry;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -22,10 +28,10 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class DocumentService {
     private final DocumentMetadataRepository repository;
-    private final AsyncDocumentService asyncDocumentService;
     private final S3Service s3Service;
     private final S3EventPublisher s3EventPublisher;
     private final VectorStoreService vectorStoreService;
+    private final DocParserService docParserService;
 
     @Transactional(readOnly = true)
     public List<DocumentResponseDTO> getAllDocuments() {
@@ -85,22 +91,51 @@ public class DocumentService {
         s3Service.deleteFile(tenantId, id, doc.getFileName());
     }
 
-    @Transactional
-    public void analyzeDocument(UUID id, UUID tenantId, byte[] rawContent) {
-        DocumentMetadata doc = findDocById(id, tenantId);
+    public void analyzeDocument(UUID docId, UUID tenantId, byte[] rawContent) {
+        DocumentMetadata doc = findDocById(docId, tenantId);
 
         if (doc.getStatus() == DocumentStatus.PROCESSING) {
-            throw new DocumentProcessingException("Analysis already in progress for document: " + id);
+            throw new DocumentProcessingException("Analysis already in progress for document: " + docId);
         }
 
         if (doc.getStatus() == DocumentStatus.COMPLETED) {
-            log.info("Document {} has already been analyzed. Re-analyzing...", id);
+            log.info("Document {} has already been analyzed. Re-analyzing...", docId);
         }
 
         doc.setStatus(DocumentStatus.PROCESSING);
-        repository.saveAndFlush(doc);
+        repository.save(doc);
 
-        asyncDocumentService.docAnalysis(doc, rawContent, tenantId);
+        docParserService.extractTextFromPdf(rawContent, doc.getFileName())
+                .windowUntilChanged(UnstructuredResponseDTO::getPageNumber)
+                .flatMap(pageFlux ->
+                        pageFlux.collectList()
+                                .map(pageElements -> pageElements.stream()
+                                        .map(UnstructuredResponseDTO::getText)
+                                        .filter(text -> text != null && !text.isBlank())
+                                        .collect(Collectors.joining("\n\n")))
+                )
+                .collectList()
+                .flatMap(allPages ->
+                        Mono.fromRunnable(() -> {
+                            log.debug("Ingesting Document {} into Vector Store", docId);
+                            vectorStoreService.ingestDocument(allPages, docId, doc.getFileName(), tenantId);
+                        })
+                ).subscribeOn(Schedulers.boundedElastic())
+                .retryWhen(Retry.backoff(3, Duration.ofSeconds(2))
+                        .doBeforeRetry(retrySignal -> log.warn("Retrying for Document {} into Vector Store", docId)))
+                .doOnSuccess(v -> {
+                    log.info("Document {} has been analyzed", docId);
+                    DocumentMetadata latest = findDocById(docId, tenantId);
+                    latest.setStatus(DocumentStatus.COMPLETED);
+                    repository.save(latest);
+                })
+                .doOnError(e -> {
+                    log.error("Failed to ingest Document {} into Vector Store: {}", docId, e.getMessage());
+                    DocumentMetadata latest = findDocById(docId, tenantId);
+                    latest.setStatus(DocumentStatus.FAILED);
+                    repository.save(latest);
+                })
+                .then().block();
     }
 
     @Transactional

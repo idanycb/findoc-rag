@@ -1,7 +1,7 @@
 package com.danycb.findocAnalyzer.document;
 
-import com.danycb.findocAnalyzer.common.dto.DocumentRequestDTO;
-import com.danycb.findocAnalyzer.common.dto.DocumentResponseDTO;
+import com.danycb.findocAnalyzer.document.dto.DocumentRequestDTO;
+import com.danycb.findocAnalyzer.document.dto.DocumentResponseDTO;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -31,24 +31,24 @@ public class DocumentController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<DocumentResponseDTO> getById(@PathVariable UUID id) {
+    public ResponseEntity<DocumentResponseDTO> getById(@PathVariable("id") UUID id) {
         return ResponseEntity.ok(documentService.getDocumentById(id));
     }
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deleteDocument(@PathVariable UUID id) {
+    public void deleteDocument(@PathVariable("id") UUID id) {
         documentService.deleteDocument(id);
     }
 
     @GetMapping("/{id}/view")
-    public ResponseEntity<Map<String, Object>> getViewUrl(@PathVariable UUID id) {
+    public ResponseEntity<Map<String, Object>> getViewUrl(@PathVariable("id") UUID id) {
         String url = documentService.generateViewUrl(id);
         return ResponseEntity.ok(Map.of("viewUrl", url));
     }
 
     @PostMapping("/{id}/analyze")
-    public ResponseEntity<DocumentResponseDTO> analyze(@PathVariable UUID id) {
+    public ResponseEntity<DocumentResponseDTO> analyze(@PathVariable("id") UUID id) {
         DocumentResponseDTO result = documentService.reanalyzeDocument(id);
         return ResponseEntity.ok(result);
     }

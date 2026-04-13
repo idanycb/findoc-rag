@@ -1,4 +1,4 @@
-package com.danycb.findocAnalyzer.common.dto;
+package com.danycb.findocAnalyzer.document.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;

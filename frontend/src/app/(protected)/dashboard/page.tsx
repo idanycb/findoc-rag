@@ -45,14 +45,26 @@ export default function DashboardPage() {
     }
   };
 
+  const handleDocumentUpdated = (updatedDoc: Document) => {
+    if (selectedDoc?.id === updatedDoc.id) {
+      setSelectedDoc(updatedDoc);
+    }
+
+    if (updatedDoc.status === 'COMPLETED' || updatedDoc.status === 'FAILED') {
+      void refetch();
+    }
+  };
+
   return (
     <>
       <MainHeader
         title="Dashboard"
         onUploadClick={() => setIsUploadOpen(true)}
+        documents={documents}
+        onSelectDocument={(doc) => setSelectedDoc(doc)}
       />
 
-      <section className="flex-1 overflow-y-auto p-12 bg-[#F8FAFC]/50">
+      <section className="flex-1 overflow-y-auto bg-neutral-100/70 p-4 sm:p-6 lg:p-10">
         <div className="max-w-7xl mx-auto">
           {loading ? (
             <LoadingIndicator />
@@ -80,6 +92,7 @@ export default function DashboardPage() {
           doc={selectedDoc}
           token={token}
           onDeleteDoc={handleDeleteDocument}
+          onDocUpdated={handleDocumentUpdated}
           deletingId={deletingId}
           onClose={() => setSelectedDoc(null)}
         />

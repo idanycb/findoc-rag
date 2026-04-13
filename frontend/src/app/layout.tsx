@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'FinIntel - Document Analysis',
-  description: 'Edge-orchestrated financial document analysis platform',
+  title: 'RAG Workspace',
+  description: 'General-purpose retrieval-augmented document workspace',
 };
 
 export default function RootLayout({

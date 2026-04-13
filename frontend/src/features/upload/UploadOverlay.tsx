@@ -64,13 +64,13 @@ export const UploadOverlay: React.FC<UploadOverlayProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md flex items-center justify-center z-50 p-6">
-      <Card className="max-w-md w-full p-12 animate-in zoom-in-95 shadow-3xl border-white/20">
-        <h3 className="text-2xl font-black mb-8 text-slate-800">
-          Ingest Document
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-md sm:p-6">
+      <Card className="w-full max-w-md border-white/20 p-7 animate-in zoom-in-95 shadow-3xl sm:p-10">
+        <h3 className="mb-6 text-2xl font-black text-neutral-900 sm:mb-8">
+          Upload Document
         </h3>
 
-        <label className="border-4 border-dashed border-slate-100 rounded-[40px] h-64 flex flex-col items-center justify-center cursor-pointer hover:bg-slate-50 hover:border-indigo-300 transition-all mb-10 group">
+        <label className="group mb-8 flex h-56 cursor-pointer flex-col items-center justify-center rounded-[36px] border-4 border-dashed border-neutral-300 transition-all hover:border-neutral-500 hover:bg-neutral-100 sm:mb-10 sm:h-64">
           <input
             type="file"
             className="hidden"
@@ -80,16 +80,18 @@ export const UploadOverlay: React.FC<UploadOverlayProps> = ({
               setError(null);
             }}
           />
-          <div className="bg-indigo-50 text-indigo-400 p-4 rounded-full group-hover:scale-110 transition-transform">
+          <div className="rounded-full bg-neutral-200 p-4 text-neutral-700 transition-transform group-hover:scale-110">
             <FileUp size={48} />
           </div>
-          <p className="text-sm font-bold text-slate-500 mt-4">
-            {file ? file.name : 'Select Financial PDF'}
+          <p className="mt-4 text-sm font-bold text-neutral-600">
+            {file ? file.name : 'Select PDF Document'}
           </p>
         </label>
 
         {error && (
-          <p className="text-sm text-rose-600 font-semibold mb-4">{error}</p>
+          <p className="mb-4 rounded-xl border border-neutral-300 bg-neutral-100 px-3 py-2 text-sm font-semibold text-neutral-700">
+            {error}
+          </p>
         )}
 
         <div className="flex gap-4">
@@ -101,7 +103,7 @@ export const UploadOverlay: React.FC<UploadOverlayProps> = ({
             onClick={handleIngest}
             disabled={loading || !file}
           >
-            {loading ? 'Uploading...' : 'Begin Archival'}
+            {loading ? 'Uploading...' : 'Upload'}
           </Button>
         </div>
       </Card>

@@ -7,9 +7,9 @@ type CardProps = {
 };
 
 const Card = ({ children, className = '', onClick }: CardProps) => (
-  <div 
+  <div
     onClick={onClick}
-    className={`bg-white border border-slate-100 rounded-4xl p-8 transition-all ${onClick ? 'cursor-pointer hover:shadow-2xl hover:border-indigo-100' : ''} ${className}`}
+    className={`rounded-4xl border border-neutral-200 bg-white p-8 transition-all ${onClick ? 'cursor-pointer hover:border-neutral-400 hover:shadow-2xl' : ''} ${className}`}
   >
     {children}
   </div>

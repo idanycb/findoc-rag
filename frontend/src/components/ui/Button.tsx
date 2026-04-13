@@ -11,21 +11,30 @@ type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   loading?: boolean;
 };
 
-const Button = ({ children, variant = 'primary', className = '', loading = false, ...props }:ButtonProps) => {
-  const themes : Record<ButtonVariant, string> = {
-    primary: 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-md shadow-indigo-100',
-    secondary: 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50',
-    ghost: 'text-slate-500 hover:bg-slate-100'
+const Button = ({
+  children,
+  variant = 'primary',
+  className = '',
+  loading = false,
+  ...props
+}: ButtonProps) => {
+  const themes: Record<ButtonVariant, string> = {
+    primary:
+      'bg-neutral-900 text-white hover:bg-black shadow-md shadow-neutral-300',
+    secondary:
+      'bg-white text-neutral-800 border border-neutral-300 hover:bg-neutral-100',
+    ghost: 'text-neutral-700 hover:bg-neutral-100',
   };
 
   return (
-    <button 
+    <button
       disabled={loading || props.disabled}
-      className={`px-5 py-2.5 rounded-2xl font-bold text-sm transition-all flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50 ${themes[variant]} ${className}`}
+      className={`rounded-2xl px-5 py-2.5 text-sm font-bold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${themes[variant]} ${className}`}
       {...props}
     >
       {loading ? <Loader2 size={18} className="animate-spin" /> : children}
     </button>
   );
 };
+
 export default Button;

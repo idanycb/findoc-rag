@@ -6,9 +6,9 @@ export default function ProtectedLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex h-screen bg-[#FDFDFD] text-slate-900 overflow-hidden font-sans selection:bg-indigo-100 selection:text-indigo-900">
+    <div className="flex min-h-screen flex-col overflow-hidden bg-neutral-100 text-neutral-900 font-sans selection:bg-neutral-300 selection:text-black md:h-screen md:flex-row">
       <MainNavigation />
-      <main className="flex-1 flex flex-col relative overflow-hidden">
+      <main className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
         {children}
       </main>
     </div>

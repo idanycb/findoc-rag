@@ -12,51 +12,53 @@ interface AuditViewProps {
 export const AuditView: React.FC<AuditViewProps> = ({ documents }) => {
   return (
     <Card className="p-0 overflow-hidden border-none shadow-2xl">
-      <table className="w-full text-left border-collapse">
-        <thead className="bg-slate-50 border-b border-slate-100">
-          <tr>
-            <th className="p-7 text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">
-              Source Asset
-            </th>
-            <th className="p-7 text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">
-              Archival Integrity
-            </th>
-            <th className="p-7 text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">
-              Audit Timestamp
-            </th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-slate-50">
-          {documents.length === 0 ? (
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-160 border-collapse text-left">
+          <thead className="border-b border-neutral-200 bg-neutral-100">
             <tr>
-              <td
-                colSpan={3}
-                className="p-12 text-center text-sm font-semibold text-slate-500"
-              >
-                No documents available yet. Upload a file to populate the audit
-                log.
-              </td>
+              <th className="p-4 text-[10px] font-black uppercase tracking-[0.2em] text-neutral-500 sm:p-6">
+                Source Asset
+              </th>
+              <th className="p-4 text-[10px] font-black uppercase tracking-[0.2em] text-neutral-500 sm:p-6">
+                Processing State
+              </th>
+              <th className="p-4 text-[10px] font-black uppercase tracking-[0.2em] text-neutral-500 sm:p-6">
+                Activity Timestamp
+              </th>
             </tr>
-          ) : (
-            documents.map((d) => (
-              <tr
-                key={d.id}
-                className="hover:bg-indigo-50/20 transition-all group"
-              >
-                <td className="p-10 font-bold text-slate-700 text-sm group-hover:text-indigo-600 transition-colors">
-                  {d.fileName}
-                </td>
-                <td className="p-10">
-                  <StatusBadge status={d.status} />
-                </td>
-                <td className="p-10 text-xs text-slate-400 font-bold tabular-nums">
-                  {new Date(d.uploadedAt).toLocaleString()}
+          </thead>
+          <tbody className="divide-y divide-neutral-200">
+            {documents.length === 0 ? (
+              <tr>
+                <td
+                  colSpan={3}
+                  className="p-8 text-center text-sm font-semibold text-neutral-600 sm:p-12"
+                >
+                  No documents available yet. Upload a file to populate the
+                  activity log.
                 </td>
               </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+            ) : (
+              documents.map((d) => (
+                <tr
+                  key={d.id}
+                  className="group transition-all hover:bg-neutral-100"
+                >
+                  <td className="p-4 text-sm font-bold text-neutral-800 transition-colors group-hover:text-black sm:p-7">
+                    {d.fileName}
+                  </td>
+                  <td className="p-4 sm:p-7">
+                    <StatusBadge status={d.status} />
+                  </td>
+                  <td className="p-4 text-xs font-bold tabular-nums text-neutral-500 sm:p-7">
+                    {new Date(d.uploadedAt).toLocaleString()}
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
     </Card>
   );
 };

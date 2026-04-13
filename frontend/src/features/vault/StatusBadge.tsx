@@ -10,10 +10,10 @@ const StatusBadge = ({ status }: StatusBadgeProps) => {
     <span
       className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${
         status === 'COMPLETED'
-          ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
+          ? 'bg-neutral-900 text-white border-neutral-900'
           : status === 'FAILED'
-            ? 'bg-rose-50 text-rose-600 border-rose-100'
-            : 'bg-amber-50 text-amber-600 border-amber-100'
+            ? 'bg-neutral-200 text-neutral-900 border-neutral-300'
+            : 'bg-white text-neutral-700 border-neutral-300'
       } ${isPending ? 'animate-pulse' : ''}`}
     >
       {status}

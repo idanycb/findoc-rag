@@ -48,44 +48,46 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-slate-900 via-indigo-900 to-slate-900 flex items-center justify-center p-6">
-      <Card className="max-w-md w-full p-12 shadow-3xl border-white/10 bg-white/95 backdrop-blur-xl">
-        <div className="flex flex-col items-center mb-10">
-          <div className="bg-indigo-600 p-4 rounded-2xl text-white shadow-2xl shadow-indigo-200 mb-6">
+    <div className="flex min-h-screen items-center justify-center bg-linear-to-br from-neutral-900 via-neutral-800 to-neutral-700 p-4 sm:p-6">
+      <Card className="w-full max-w-md border-white/15 bg-white/95 p-7 shadow-3xl backdrop-blur-xl sm:p-10">
+        <div className="mb-8 flex flex-col items-center sm:mb-10">
+          <div className="mb-5 rounded-2xl bg-neutral-900 p-4 text-white shadow-2xl shadow-neutral-500/30 sm:mb-6">
             <ShieldCheck size={32} />
           </div>
-          <h1 className="text-3xl font-black tracking-tight text-slate-800">
-            FinDoc Analyzer
+          <h1 className="text-center text-3xl font-black tracking-tight text-neutral-900">
+            RAG Workspace
           </h1>
         </div>
 
         <form onSubmit={handleLogin} className="space-y-6">
           <div>
-            <label className="block text-sm font-bold text-slate-700 mb-2">
+            <label className="mb-2 block text-sm font-bold text-neutral-800">
               Username
             </label>
             <input
               type="text"
               name="username"
               required
-              className="w-full px-4 py-3 text-black bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition-all"
+              className="w-full rounded-2xl border border-neutral-300 bg-neutral-100 px-4 py-3 text-black transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-neutral-500"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-bold text-slate-700 mb-2">
+            <label className="mb-2 block text-sm font-bold text-neutral-800">
               Password
             </label>
             <input
               type="password"
               name="password"
               required
-              className="w-full px-4 py-3 text-black bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition-all"
+              className="w-full rounded-2xl border border-neutral-300 bg-neutral-100 px-4 py-3 text-black transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-neutral-500"
             />
           </div>
 
           {error && (
-            <p className="text-sm text-rose-600 font-semibold">{error}</p>
+            <p className="rounded-xl border border-neutral-300 bg-neutral-100 px-3 py-2 text-sm font-semibold text-neutral-700">
+              {error}
+            </p>
           )}
 
           <Button

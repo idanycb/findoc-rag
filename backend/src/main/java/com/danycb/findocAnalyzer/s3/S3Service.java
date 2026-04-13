@@ -4,7 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import software.amazon.awssdk.core.ResponseBytes;
+import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
@@ -67,7 +67,7 @@ public class S3Service {
         return presignedRequest.url().toString();
     }
 
-    public byte[] downloadFile(String s3Key) {
+    public ResponseInputStream<GetObjectResponse> downloadFile(String s3Key) {
         log.info("Downloading file from S3; {}", s3Key);
 
         GetObjectRequest request = GetObjectRequest.builder()
@@ -75,9 +75,7 @@ public class S3Service {
                 .key(s3Key)
                 .build();
 
-        ResponseBytes<GetObjectResponse> responseBytes = s3Client.getObjectAsBytes(request);
-
-        return responseBytes.asByteArray();
+        return s3Client.getObject(request);
     }
 
     public void deleteFile(UUID tenantId, UUID docId, String fileName) {

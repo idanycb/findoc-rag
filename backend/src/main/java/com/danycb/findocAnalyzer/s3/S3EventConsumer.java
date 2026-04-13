@@ -46,7 +46,7 @@ public class S3EventConsumer {
             String decodedKey = URLDecoder.decode(s3Key, StandardCharsets.UTF_8);
             FileKeyParts parts = extractPartsFromKey(decodedKey);
 
-            byte[] fileBytes = s3Service.downloadFile(decodedKey);
+            byte[] fileBytes = s3Service.downloadFile(decodedKey).readAllBytes();
             documentService.analyzeDocument(parts.docId, parts.tenantId, fileBytes);
         } catch (Exception e) {
             log.error("SQS Pipeline Failure: {}", e.getMessage());

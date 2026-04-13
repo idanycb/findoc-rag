@@ -58,11 +58,13 @@ CREATE INDEX idx_docmeta_uploaded_at ON document_metadata (uploaded_at);
 CREATE TABLE document_embeddings
 (
     embedding_id UUID,
-    tenant_id    UUID        NOT NULL,
-    document_id  UUID        NOT NULL,
-    chunk_index  INT         NOT NULL,
+    tenant_id    UUID         NOT NULL,
+    document_id  UUID         NOT NULL,
+    file_name    VARCHAR(255) NOT NULL,
+    page         INT          NOT NULL,
+    chunk_index  INT          NOT NULL,
     text         TEXT,
-    embedding    VECTOR(384) NOT NULL,
+    embedding    VECTOR(384)  NOT NULL,
 
     CONSTRAINT pk_doc_embeddings PRIMARY KEY (embedding_id),
     CONSTRAINT fk_document

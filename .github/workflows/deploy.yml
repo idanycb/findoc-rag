@@ -112,6 +112,8 @@ jobs:
         with:
           context: ./frontend
           file: ./frontend/Dockerfile
+          build-args: |
+            NEXT_API_DESTINATION=http://backend:8080/api/v1
           platforms: linux/arm64
           push: true
           cache-from: type=gha

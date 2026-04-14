@@ -1,0 +1,6 @@
+# To use the plugin as ./mvnw flyway:[command], flyway.conf is required
+
+flyway.url=
+flyway.user=
+flyway.password=
+flyway.cleanDisabled=false

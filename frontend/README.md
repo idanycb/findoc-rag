@@ -1,11 +1,11 @@
 # FinDoc Analyzer Frontend
 
-Modern Next.js frontend for financial document ingestion, audit visibility, and AI-assisted Q&A.
+Modern Next.js frontend for document ingestion, audit visibility, and AI-assisted Q&A.
 
 ## For Users
 
 - Sign in to access your workspace.
-- Upload financial documents and monitor processing status.
+- Upload documents and monitor processing status.
 - Supports document upload, insight viewing, and deletion.
 - Provides an audit log view for archival/compliance tracking.
 - Enables chat-based financial Q&A grounded in uploaded documents.

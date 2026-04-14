@@ -1,0 +1,16 @@
+# Build outputs
+target
+
+# VCS/editor
+.git
+.gitignore
+.vscode
+.idea
+
+# Local env and logs
+.env*
+*.log
+
+# Misc
+Dockerfile
+README.md

@@ -1,0 +1,21 @@
+# Dependencies and build outputs
+node_modules
+.next
+dist
+out
+coverage
+
+# Local tooling/editor
+.git
+.gitignore
+.vscode
+.idea
+
+# Env and logs
+.env*
+*.log
+
+# Misc
+Dockerfile
+README.md
+tsconfig.tsbuildinfo

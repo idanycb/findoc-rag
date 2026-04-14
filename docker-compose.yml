@@ -1,0 +1,58 @@
+name: Findoc Analyzer
+
+services:
+  pgvector:
+    image: pgvector/pgvector:0.8.2-pg18-trixie
+    environment:
+      - POSTGRES_USER
+      - POSTGRES_PASSWORD
+      - POSTGRES_DB
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
+    volumes:
+      - postgres_data:/var/lib/postgresql
+
+  unstructured-api:
+    image: downloads.unstructured.io/unstructured-io/unstructured-api:latest
+    environment:
+      - UNSTRUCTURED_MEMORY_FREE_MINIMUM_MB=0
+      - PORT=8000
+    deploy:
+      resources:
+        limits:
+          memory: 4G # Local safety cap
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    depends_on:
+      pgvector:
+        condition: service_healthy
+      unstructured-api:
+        condition: service_started
+    env_file:
+      - .env
+    environment:
+      - POSTGRES_URL=jdbc:postgresql://pgvector:5432/${POSTGRES_DB}
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://pgvector:5432/${POSTGRES_DB}
+      - UNSTRUCTURED_API_URL=http://unstructured-api:8000
+      - UNSTRUCTURED_URL=http://unstructured-api:8000/general/v0/general
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - NEXT_API_DESTINATION=http://backend:8080/api/v1
+    depends_on:
+      - backend
+    ports:
+      - "3000:3000"
+
+volumes:
+  postgres_data:

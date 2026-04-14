@@ -7,6 +7,13 @@ on:
       - backend/**
       - frontend/**
       - .github/workflows/deploy.yml
+  workflow_dispatch:
+    inputs:
+      force_frontend:
+        description: Force frontend image build even if no frontend files changed
+        required: false
+        default: false
+        type: boolean
 
 jobs:
   detect-changes:
@@ -75,7 +82,7 @@ jobs:
 
   build-frontend:
     needs: detect-changes
-    if: ${{ needs.detect-changes.outputs.frontend == 'true' }}
+    if: ${{ needs.detect-changes.outputs.frontend == 'true' || github.event.inputs.force_frontend == 'true' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read

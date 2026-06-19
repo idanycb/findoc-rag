@@ -1,31 +1,17 @@
 CREATE EXTENSION IF NOT EXISTS vector;
 
 -- ============================================================
--- Tenants
--- ============================================================
-CREATE TABLE tenants
-(
-    tenant_id UUID         NOT NULL,
-    name      VARCHAR(255) NOT NULL,
-    CONSTRAINT pk_tenants PRIMARY KEY (tenant_id)
-);
-
--- ============================================================
 -- Users
 -- ============================================================
 CREATE TABLE users
 (
-    id        UUID                NOT NULL,
-    username  VARCHAR(255) UNIQUE NOT NULL,
-    password  VARCHAR(255)        NOT NULL,
-    tenant_id UUID                NOT NULL,
+    id       UUID                NOT NULL,
+    username VARCHAR(255) UNIQUE NOT NULL,
+    password VARCHAR(255)        NOT NULL,
+    role     VARCHAR(50)         NOT NULL,
 
-    CONSTRAINT pk_user PRIMARY KEY (id),
-    CONSTRAINT fk_user_tenant
-        FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id)
-            ON DELETE CASCADE
+    CONSTRAINT pk_user PRIMARY KEY (id)
 );
-CREATE INDEX idx_users_tenant_id ON users (tenant_id);
 
 -- ============================================================
 -- Document Metadata
@@ -33,7 +19,6 @@ CREATE INDEX idx_users_tenant_id ON users (tenant_id);
 CREATE TABLE document_metadata
 (
     id               UUID                        NOT NULL,
-    tenant_id        UUID                        NOT NULL,
     file_name        VARCHAR(255)                NOT NULL,
     file_size        BIGINT,
     content_type     VARCHAR(255),
@@ -43,22 +28,17 @@ CREATE TABLE document_metadata
     last_analyzed_at TIMESTAMP WITHOUT TIME ZONE,
     version          INTEGER,
 
-    CONSTRAINT pk_document_metadata PRIMARY KEY (id),
-    CONSTRAINT fk_docmeta_tenant
-        FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id)
-            ON DELETE CASCADE
+    CONSTRAINT pk_document_metadata PRIMARY KEY (id)
 );
-CREATE INDEX idx_docmeta_tenant_id ON document_metadata (tenant_id);
 CREATE INDEX idx_docmeta_status ON document_metadata (status);
 CREATE INDEX idx_docmeta_uploaded_at ON document_metadata (uploaded_at);
 
 -- ============================================================
--- Document Embeddings (Partitioned)
+-- Document Embeddings
 -- ============================================================
 CREATE TABLE document_embeddings
 (
     embedding_id UUID,
-    tenant_id    UUID         NOT NULL,
     document_id  UUID         NOT NULL,
     file_name    VARCHAR(255) NOT NULL,
     page         INT          NOT NULL,
@@ -73,61 +53,6 @@ CREATE TABLE document_embeddings
             ON DELETE CASCADE
 );
 
-CREATE OR REPLACE FUNCTION create_document_embeddings_partition(p_tenant_id UUID)
-    RETURNS void
-    LANGUAGE plpgsql
-AS
-$$
-DECLARE
-    short_id             text := replace(p_tenant_id::text, '-', '');
-    partition_table_name text := 'docemb_t_' || short_id;
-BEGIN
-    EXECUTE format(
-            'CREATE TABLE IF NOT EXISTS %I (CHECK (tenant_id = %L)) INHERITS (document_embeddings);',
-            partition_table_name,
-            p_tenant_id
-            );
-
-    EXECUTE format(
-            'CREATE INDEX IF NOT EXISTS %I ON %I USING hnsw (embedding vector_cosine_ops);',
-            partition_table_name || '_hnsw',
-            partition_table_name
-            );
-
-    EXECUTE format(
-            'CREATE INDEX IF NOT EXISTS %I ON %I (document_id);',
-            partition_table_name || '_docid',
-            partition_table_name
-            );
-
-    EXECUTE format(
-            'CREATE INDEX IF NOT EXISTS %I ON %I (chunk_index);',
-            partition_table_name || '_chunk',
-            partition_table_name
-            );
-END;
-$$;
-
-CREATE OR REPLACE FUNCTION route_document_embedding()
-    RETURNS TRIGGER
-    LANGUAGE plpgsql
-AS
-$$
-DECLARE
-    short_id             text := replace(NEW.tenant_id::text, '-', '');
-    partition_table_name text := 'docemb_t_' || short_id;
-BEGIN
-    EXECUTE format(
-            'INSERT INTO %I VALUES ($1.*)',
-            partition_table_name
-            ) USING NEW;
-
-    RETURN NULL;
-END;
-$$;
-
-CREATE TRIGGER document_embeddings_insert
-    BEFORE INSERT
-    ON document_embeddings
-    FOR EACH ROW
-EXECUTE FUNCTION route_document_embedding();
+CREATE INDEX idx_doc_embeddings_hnsw ON document_embeddings USING hnsw (embedding vector_cosine_ops);
+CREATE INDEX idx_doc_embeddings_doc_id ON document_embeddings (document_id);
+CREATE INDEX idx_doc_embeddings_chunk ON document_embeddings (chunk_index);

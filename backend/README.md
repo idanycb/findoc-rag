@@ -1,15 +1,13 @@
 # FinDoc Analyzer: High-Performance General Purpose RAG
 
-**FinDoc Analyzer** is a production-grade SaaS platform designed for high-precision document analysis using a Retrieval-Augmented Generation (RAG) architecture.
+**FinDoc Analyzer** is a self-hosted application designed for high-precision financial document analysis using a Retrieval-Augmented Generation (RAG) architecture.
 
 While the system is architected for future optimization in financial auditing (SEC filings), it currently serves as a powerful general-purpose knowledge retrieval engine capable of ingesting any PDF/Text data and providing grounded, cited answers.
 
 ## 🚀 Key Architectural Pillars
 
-### 1. Multi-Tenant Physical Isolation
-Unlike basic RAG implementations that use simple logical filters, FinDoc Analyzer utilizes PostgreSQL Physical Partitioning via `pgvector`.
-- Every organization's data is stored in its own physical table partition.
-- Queries utilize Partition Pruning, ensuring similarity searches never scan across tenant boundaries.
+### 1. Single-Instance Document Vault
+Each deployment serves one individual, household, or organization. Multiple users can share the same instance, and all authenticated users work against the same private document vault.
 
 ### 2. Reactive Ingestion Pipeline (Unstructured.io)
 To handle massive documents without blocking, the ingestion engine uses Project Reactor:
@@ -26,11 +24,11 @@ The retrieval orchestrator uses a "Coarse-to-Fine" strategy:
 ## 🛠️ Tech Stack
 - **Backend:** Spring Boot 4.x, Java 21, Project Reactor.
 - **AI Framework:** LangChain4j (Latest) + Groq (Llama-3.1-8b).
-- **Persistence:** PostgreSQL 16 + pgvector (Partitioned).
+- **Persistence:** PostgreSQL 16 + pgvector.
 - **Infrastructure:** AWS S3 (Binary Storage), AWS SQS (Event Orchestration).
 - **Parsing:** Unstructured.io (Containerized).
 
 ## 🗺️ Future Roadmap
 - [ ] **SEC EDGAR Optimization:** Transition to authoritative SEC feeds and semantic parsing for 10-K/10-Q sections.
 - [ ] **Hybrid Quantitative RAG:** Implementing SQL tools to query structured data alongside vectors.
-- [ ] **Cost Analytics:** Per-tenant token usage tracking for precise billing insights.
+- [ ] **Cost Analytics:** Instance-level token usage tracking and analysis cost reporting.

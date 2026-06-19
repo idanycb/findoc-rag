@@ -3,4 +3,4 @@
 flyway.url=
 flyway.user=
 flyway.password=
-flyway.cleanDisabled=false
+flyway.cleanDisabled

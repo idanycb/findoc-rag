@@ -6,15 +6,13 @@ import com.danycb.findocAnalyzer.features.vault.application.out.DocumentReposito
 import com.danycb.findocAnalyzer.features.vault.application.out.ExternalStoragePort;
 import com.danycb.findocAnalyzer.features.vault.application.out.VectorIndexPort;
 import com.danycb.findocAnalyzer.features.vault.domain.Document;
-import com.danycb.findocAnalyzer.features.vault.domain.ParsedPage;
+import com.danycb.findocAnalyzer.features.vault.domain.ParsedSection;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.UUID;
 
-@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AnalyzeDocumentService implements AnalyzeDocumentUseCase {
@@ -22,34 +20,36 @@ public class AnalyzeDocumentService implements AnalyzeDocumentUseCase {
     private final ExternalStoragePort objectStorage;
     private final DocumentParserPort documentParser;
     private final VectorIndexPort vectorIndex;
+    private final VaultAuditLogger auditLogger;
 
     @Override
     public void analyze(UUID docId, String objectKey) {
         var optionalDocument = repository.findById(docId);
         if (optionalDocument.isEmpty()) {
-            log.warn("Skipping analysis for document: {}, REASON: Resource not found", docId);
+            auditLogger.analysisSkipped(docId, "document_not_found");
             return;
         }
         Document document = optionalDocument.get();
 
         if (document.cannotAnalyze()) {
-            log.info("Skipping analysis for document: {}, REASON: Document already processed or under analysis", docId);
+            auditLogger.analysisSkipped(document, "status_mismatch");
             return;
         }
 
         document.markProcessing();
         document = repository.save(document);
+        auditLogger.analysisStarted(document);
 
         try {
             byte[] content = objectStorage.download(objectKey);
-            List<ParsedPage> pages = documentParser.parse(content, document.getFileName(), document.getContentType());
-            vectorIndex.ingest(pages, docId, document.getFileName());
+            List<ParsedSection> sections = documentParser.parse(content, document.getFileName(), document.getContentType());
+            vectorIndex.ingest(sections, docId, document.getTeamId(), document.getFileName());
 
             document.markCompleted();
-            log.info("Document {} has been analyzed", docId);
+            auditLogger.analysisCompleted(document, sections.size());
         } catch (Exception e) {
             document.markFailed();
-            log.error("Failed to analyze Document: {}, REASON: {}", docId, e.getMessage());
+            auditLogger.analysisFailed(document, e);
         } finally {
             repository.save(document);
         }

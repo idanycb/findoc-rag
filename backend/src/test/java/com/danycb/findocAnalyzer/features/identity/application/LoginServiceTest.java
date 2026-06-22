@@ -2,9 +2,10 @@ package com.danycb.findocAnalyzer.features.identity.application;
 
 import com.danycb.findocAnalyzer.features.identity.application.dto.LoginCommand;
 import com.danycb.findocAnalyzer.features.identity.application.dto.LoginResult;
-import com.danycb.findocAnalyzer.features.identity.adapter.out.security.JwtAccessTokenAdapter;
-import com.danycb.findocAnalyzer.features.identity.application.out.PasswordVerifierPort;
-import com.danycb.findocAnalyzer.features.identity.application.out.UserLookupPort;
+import com.danycb.findocAnalyzer.features.identity.application.exception.InvalidCredentialsException;
+import com.danycb.findocAnalyzer.features.identity.application.fakes.StubAccessToken;
+import com.danycb.findocAnalyzer.features.identity.application.out.PasswordEncoderPort;
+import com.danycb.findocAnalyzer.features.identity.application.out.UserReaderPort;
 import com.danycb.findocAnalyzer.features.identity.domain.User;
 import com.danycb.findocAnalyzer.features.identity.domain.UserRole;
 import org.junit.jupiter.api.BeforeEach;
@@ -21,12 +22,11 @@ class LoginServiceTest {
     private LoginService loginService;
 
     private final UUID userId = UUID.randomUUID();
-    private final User alice = new User(userId, "alice", "hashed-pw", UserRole.MEMBER);
+    private final User alice = new User(userId, "alice", "hashed-pw", UserRole.MEMBER, UUID.randomUUID());
 
     @BeforeEach
     void setUp() {
-        var accessToken = new JwtAccessTokenAdapter("test-secret-that-is-at-least-32-bytes-long!!");
-        loginService = new LoginService(userLookup, new PlaintextPasswordVerifier(), accessToken);
+        loginService = new LoginService(userLookup, new PlaintextPasswordEncoder(), new StubAccessToken());
     }
 
     @Test
@@ -52,7 +52,7 @@ class LoginServiceTest {
                 .isInstanceOf(InvalidCredentialsException.class);
     }
 
-    static class FakeUserLookup implements UserLookupPort {
+    static class FakeUserLookup implements UserReaderPort {
         private final Map<String, User> users = new HashMap<>();
 
         void add(User user) {
@@ -63,12 +63,52 @@ class LoginServiceTest {
         public Optional<User> findByUsername(String username) {
             return Optional.ofNullable(users.get(username));
         }
+
+        @Override
+        public boolean existsAny() {
+            return !users.isEmpty();
+        }
+
+        @Override
+        public Optional<User> findById(UUID id) {
+            return users.values().stream().filter(u -> u.id().equals(id)).findFirst();
+        }
+
+        @Override
+        public List<User> findAll() {
+            return new ArrayList<>(users.values());
+        }
+
+        @Override
+        public List<User> findByTeamId(UUID teamId) {
+            return users.values().stream().filter(u -> teamId.equals(u.teamId())).toList();
+        }
+
+        @Override
+        public boolean existsByUsername(String username) {
+            return users.containsKey(username);
+        }
+
+        @Override
+        public long countByRole(UserRole role) {
+            return users.values().stream().filter(u -> u.role() == role).count();
+        }
+
+        @Override
+        public long countByTeamId(UUID teamId) {
+            return users.values().stream().filter(u -> teamId.equals(u.teamId())).count();
+        }
     }
 
-    static class PlaintextPasswordVerifier implements PasswordVerifierPort {
+    static class PlaintextPasswordEncoder implements PasswordEncoderPort {
         @Override
         public boolean matches(String rawPassword, String encodedPassword) {
             return rawPassword.equals(encodedPassword);
+        }
+
+        @Override
+        public String hash(String rawPassword) {
+            return rawPassword;
         }
     }
 

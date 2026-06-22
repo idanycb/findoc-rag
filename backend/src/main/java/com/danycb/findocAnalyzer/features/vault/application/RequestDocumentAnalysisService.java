@@ -7,28 +7,27 @@ import com.danycb.findocAnalyzer.features.vault.application.out.DocumentReposito
 import com.danycb.findocAnalyzer.features.vault.application.out.ExternalStoragePort;
 import com.danycb.findocAnalyzer.features.vault.domain.Document;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
-@Slf4j
 @Service
 @RequiredArgsConstructor
 public class RequestDocumentAnalysisService implements RequestDocumentAnalysisUseCase {
     private final DocumentRepositoryPort repository;
     private final ExternalStoragePort objectStorage;
     private final AnalysisQueuePort analysisQueue;
+    private final VaultAuditLogger auditLogger;
 
     @Override
     @Transactional
-    public Document execute(UUID id) {
-        Document document = repository.getById(id);
+    public void execute(UUID id, UUID teamId) {
+        Document document = repository.getByIdForTeam(id, teamId);
 
         if (document.cannotAnalyze()) {
-            log.warn("Attempting reanalysis on Document {} in state {}", id, document.getStatus());
-            return document;
+            auditLogger.analysisSkipped(document, "status_not_analyzable");
+            return;
         }
 
         document.markPendingForReanalysis();
@@ -36,7 +35,6 @@ public class RequestDocumentAnalysisService implements RequestDocumentAnalysisUs
 
         String objectKey = objectStorage.buildObjectKey(id);
         analysisQueue.enqueue(new DocumentAnalysisMessage(id, objectKey));
-
-        return saved;
+        auditLogger.analysisRequested(saved);
     }
 }

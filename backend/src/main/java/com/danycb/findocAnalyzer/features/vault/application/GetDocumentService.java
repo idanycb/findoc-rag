@@ -16,7 +16,7 @@ public class GetDocumentService implements GetDocumentUseCase {
 
     @Override
     @Transactional(readOnly = true)
-    public Document execute(UUID id) {
-        return repository.getById(id);
+    public Document execute(UUID id, UUID teamId) {
+        return repository.getByIdForTeam(id, teamId);
     }
 }

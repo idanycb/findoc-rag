@@ -8,23 +8,23 @@ import com.danycb.findocAnalyzer.features.vault.application.out.ExternalStorageP
 import com.danycb.findocAnalyzer.features.vault.domain.Document;
 import com.danycb.findocAnalyzer.features.vault.domain.DocumentStatus;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-@Slf4j
+import java.util.UUID;
+
 @Service
 @RequiredArgsConstructor
 public class InitiateUploadService implements InitiateUploadUseCase {
     private final DocumentRepositoryPort repository;
     private final ExternalStoragePort objectStorage;
+    private final VaultAuditLogger auditLogger;
 
     @Override
     @Transactional
-    public UploadResult execute(DocumentUploadCommand command) {
-        log.info("Requested upload ticket for: {}", command.getFileName());
-
+    public UploadResult execute(DocumentUploadCommand command, UUID teamId) {
         Document document = Document.builder()
+                .teamId(teamId)
                 .fileName(command.getFileName())
                 .fileSize(command.getSize())
                 .contentType(command.getType())
@@ -35,6 +35,7 @@ public class InitiateUploadService implements InitiateUploadUseCase {
 
         String uploadUrl = objectStorage.generateUploadUrl(
                 saved.getId(), saved.getContentType());
+        auditLogger.uploadInitiated(saved);
 
         return new UploadResult(saved.getId(), saved.getFileName(), saved.getStatus().name(), uploadUrl);
     }

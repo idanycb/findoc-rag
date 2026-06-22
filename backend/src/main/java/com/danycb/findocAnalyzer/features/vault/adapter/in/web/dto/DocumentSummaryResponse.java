@@ -1,4 +1,4 @@
-package com.danycb.findocAnalyzer.features.vault.adapter.in.web;
+package com.danycb.findocAnalyzer.features.vault.adapter.in.web.dto;
 
 import com.danycb.findocAnalyzer.features.vault.domain.Document;
 import com.danycb.findocAnalyzer.features.vault.domain.DocumentStatus;

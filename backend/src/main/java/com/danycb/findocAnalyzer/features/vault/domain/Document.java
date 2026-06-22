@@ -10,6 +10,7 @@ import java.util.UUID;
 @Builder
 public class Document {
     private final UUID id;
+    private final UUID teamId;
     private final String fileName;
     private final Long fileSize;
     private final String contentType;
@@ -17,7 +18,7 @@ public class Document {
     private final Integer version;
 
     private DocumentStatus status;
-    private String aiSummary;
+    private Instant lastAnalyzedAt;
 
     public boolean cannotAnalyze() {
         return status != DocumentStatus.FAILED && status != DocumentStatus.PENDING;
@@ -29,6 +30,7 @@ public class Document {
 
     public void markCompleted() {
         this.status = DocumentStatus.COMPLETED;
+        this.lastAnalyzedAt = Instant.now();
     }
 
     public void markFailed() {

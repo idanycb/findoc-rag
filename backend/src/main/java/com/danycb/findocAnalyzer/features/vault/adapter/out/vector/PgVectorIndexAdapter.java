@@ -1,7 +1,7 @@
 package com.danycb.findocAnalyzer.features.vault.adapter.out.vector;
 
 import com.danycb.findocAnalyzer.features.vault.application.out.VectorIndexPort;
-import com.danycb.findocAnalyzer.features.vault.domain.ParsedPage;
+import com.danycb.findocAnalyzer.features.vault.domain.ParsedSection;
 import dev.langchain4j.data.document.Document;
 import dev.langchain4j.data.document.DocumentSplitter;
 import dev.langchain4j.data.document.Metadata;
@@ -25,33 +25,46 @@ import static dev.langchain4j.store.embedding.filter.MetadataFilterBuilder.metad
 @Component
 @RequiredArgsConstructor
 public class PgVectorIndexAdapter implements VectorIndexPort {
+    private static final int MAX_CHILD_CHUNK_SIZE = 600;
+    private static final int CHILD_OVERLAP = 80;
+    private static final int EMBEDDING_SAFE_CHAR_LIMIT = 900;
+
     private final EmbeddingModel embeddingModel;
     private final EmbeddingStore<TextSegment> embeddingStore;
 
     @Override
-    public void ingest(List<ParsedPage> pages, UUID docId, String fileName) {
+    public void ingest(List<ParsedSection> sections, UUID docId, UUID teamId, String fileName) {
         Metadata baseMetadata = new Metadata();
         baseMetadata.put("file_name", fileName);
         baseMetadata.put("document_id", docId.toString());
+        baseMetadata.put("team_id", teamId.toString());
 
-        List<TextSegment> segments = new ArrayList<>(pages.size() * 4);
-        DocumentSplitter splitter = DocumentSplitters.recursive(600, 80);
+        List<TextSegment> segments = new ArrayList<>(sections.size() * 4);
+        DocumentSplitter splitter = DocumentSplitters.recursive(MAX_CHILD_CHUNK_SIZE, CHILD_OVERLAP);
 
-        for (ParsedPage page : pages) {
-            if (page.text() == null || page.text().isBlank()) {
+        for (ParsedSection section : sections) {
+            if (section.text() == null || section.text().isBlank()) {
                 continue;
             }
-            baseMetadata.put("page", page.pageNumber());
+
+            String sectionText = section.text();
+            baseMetadata.put("page", section.pageNumber());
+            baseMetadata.put("section_text", sectionText);
             Map<String, Object> baseMetadataMap = baseMetadata.toMap();
 
-            Document document = Document.from(page.text());
-            List<TextSegment> rawSegments = splitter.split(document);
-
-            int chunkIndex = 0;
-            for (TextSegment segment : rawSegments) {
+            if (sectionText.length() <= EMBEDDING_SAFE_CHAR_LIMIT) {
                 Metadata metadata = new Metadata(baseMetadataMap);
-                metadata.put("chunk_index", chunkIndex++);
-                segments.add(new TextSegment(segment.text(), metadata));
+                metadata.put("chunk_index", 0);
+                segments.add(new TextSegment(sectionText, metadata));
+            } else {
+                Document document = Document.from(sectionText);
+                List<TextSegment> children = splitter.split(document);
+                int chunkIndex = 0;
+                for (TextSegment child : children) {
+                    Metadata metadata = new Metadata(baseMetadataMap);
+                    metadata.put("chunk_index", chunkIndex++);
+                    segments.add(new TextSegment(child.text(), metadata));
+                }
             }
         }
 
@@ -63,15 +76,14 @@ public class PgVectorIndexAdapter implements VectorIndexPort {
 
     @Override
     public void deleteByDocumentId(UUID docId) {
-        log.warn("Purging vector embeddings for document ID: {}", docId);
-
         Filter docFilter = metadataKey("document_id").isEqualTo(docId.toString());
 
         try {
             embeddingStore.removeAll(docFilter);
-            log.info("Successfully cleared vectors for document: {}", docId);
         } catch (Exception e) {
-            log.error("Failed to purge vectors for {}: {}", docId, e.getMessage());
+            log.error(
+                    "event=document_vectors_delete_failed documentId={} exception={} reason={}",
+                    docId, e.getClass().getSimpleName(), e.getMessage(), e);
         }
     }
 }

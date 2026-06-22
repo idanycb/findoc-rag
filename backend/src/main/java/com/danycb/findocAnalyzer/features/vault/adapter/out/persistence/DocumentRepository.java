@@ -27,10 +27,15 @@ public class DocumentRepository implements DocumentRepositoryPort {
     }
 
     @Override
-    public List<Document> findAll() {
-        return jpaRepository.findAll().stream()
+    public List<Document> findByTeamId(UUID teamId) {
+        return jpaRepository.findByTeamId(teamId).stream()
                 .map(this::toDomain)
                 .toList();
+    }
+
+    @Override
+    public Optional<Document> findByIdAndTeamId(UUID id, UUID teamId) {
+        return jpaRepository.findByIdAndTeamId(id, teamId).map(this::toDomain);
     }
 
     @Override
@@ -41,12 +46,13 @@ public class DocumentRepository implements DocumentRepositoryPort {
     private DocumentJpaEntity toEntity(Document document) {
         return DocumentJpaEntity.builder()
                 .id(document.getId())
+                .teamId(document.getTeamId())
                 .fileName(document.getFileName())
                 .fileSize(document.getFileSize())
                 .contentType(document.getContentType())
                 .uploadedAt(document.getUploadedAt())
                 .status(document.getStatus())
-                .aiSummary(document.getAiSummary())
+                .lastAnalyzedAt(document.getLastAnalyzedAt())
                 .version(document.getVersion())
                 .build();
     }
@@ -54,16 +60,20 @@ public class DocumentRepository implements DocumentRepositoryPort {
     private Document toDomain(DocumentJpaEntity entity) {
         return Document.builder()
                 .id(entity.getId())
+                .teamId(entity.getTeamId())
                 .fileName(entity.getFileName())
                 .fileSize(entity.getFileSize())
                 .contentType(entity.getContentType())
                 .uploadedAt(entity.getUploadedAt())
                 .status(entity.getStatus())
-                .aiSummary(entity.getAiSummary())
+                .lastAnalyzedAt(entity.getLastAnalyzedAt())
                 .version(entity.getVersion())
                 .build();
     }
 }
 
 interface DocumentJpaRepository extends JpaRepository<DocumentJpaEntity, UUID> {
+    List<DocumentJpaEntity> findByTeamId(UUID teamId);
+
+    Optional<DocumentJpaEntity> findByIdAndTeamId(UUID id, UUID teamId);
 }

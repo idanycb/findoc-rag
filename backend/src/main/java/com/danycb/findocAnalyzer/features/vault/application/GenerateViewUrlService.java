@@ -18,8 +18,8 @@ public class GenerateViewUrlService implements GenerateViewUrlUseCase {
 
     @Override
     @Transactional(readOnly = true)
-    public String execute(UUID id) {
-        Document document = repository.getById(id);
+    public String execute(UUID id, UUID teamId) {
+        Document document = repository.getByIdForTeam(id, teamId);
         return objectStorage.generateViewUrl(document.getId());
     }
 }

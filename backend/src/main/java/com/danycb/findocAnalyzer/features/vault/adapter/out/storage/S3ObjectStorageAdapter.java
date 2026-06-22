@@ -70,8 +70,6 @@ public class S3ObjectStorageAdapter implements ExternalStoragePort {
 
     @Override
     public byte[] download(String objectKey) {
-        log.info("Downloading file from S3: {}", objectKey);
-
         GetObjectRequest request = GetObjectRequest.builder()
                 .bucket(bucketName)
                 .key(objectKey)
@@ -87,7 +85,6 @@ public class S3ObjectStorageAdapter implements ExternalStoragePort {
     @Override
     public void delete(UUID docId) {
         String key = buildObjectKey(docId);
-        log.info("Requesting S3 deletion for key: {}", key);
 
         try {
             s3Client.deleteObject(DeleteObjectRequest.builder()
@@ -95,7 +92,9 @@ public class S3ObjectStorageAdapter implements ExternalStoragePort {
                     .key(key)
                     .build());
         } catch (Exception e) {
-            log.error("Failed to delete S3 object {}: {}", key, e.getMessage());
+            log.error(
+                    "event=document_storage_delete_failed documentId={} exception={} reason={}",
+                    docId, e.getClass().getSimpleName(), e.getMessage(), e);
         }
     }
 

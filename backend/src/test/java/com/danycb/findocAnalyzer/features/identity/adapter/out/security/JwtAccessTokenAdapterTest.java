@@ -1,5 +1,7 @@
 package com.danycb.findocAnalyzer.features.identity.adapter.out.security;
 
+import com.danycb.findocAnalyzer.features.identity.domain.User;
+import com.danycb.findocAnalyzer.features.identity.domain.UserRole;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -18,31 +20,43 @@ class JwtAccessTokenAdapterTest {
 
     private final JwtAccessTokenAdapter adapter = new JwtAccessTokenAdapter(SECRET);
 
-    @Test
-    void generate_includesCorrectClaims() {
-        UUID userId = UUID.randomUUID();
-
-        String token = adapter.generate(userId, "alice");
-
-        Claims claims = Jwts.parser()
+    private Claims parse(String token) {
+        return Jwts.parser()
                 .verifyWith(KEY)
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();
+    }
+
+    @Test
+    void generate_includesRoleAndTeamClaims() {
+        UUID userId = UUID.randomUUID();
+        UUID teamId = UUID.randomUUID();
+        User user = new User(userId, "alice", "hash", UserRole.ADMIN, teamId);
+
+        Claims claims = parse(adapter.generate(user));
 
         assertThat(claims.getSubject()).isEqualTo("alice");
         assertThat(claims.get("userId", String.class)).isEqualTo(userId.toString());
+        assertThat(claims.get("role", String.class)).isEqualTo("ADMIN");
+        assertThat(claims.get("teamId", String.class)).isEqualTo(teamId.toString());
+    }
+
+    @Test
+    void generate_omitsTeamClaimForTeamlessSuperAdmin() {
+        User superAdmin = new User(UUID.randomUUID(), "root", "hash", UserRole.SUPER_ADMIN, null);
+
+        Claims claims = parse(adapter.generate(superAdmin));
+
+        assertThat(claims.get("role", String.class)).isEqualTo("SUPER_ADMIN");
+        assertThat(claims.get("teamId", String.class)).isNull();
     }
 
     @Test
     void generate_setsExpirationInTheFuture() {
-        String token = adapter.generate(UUID.randomUUID(), "alice");
+        User user = new User(UUID.randomUUID(), "alice", "hash", UserRole.MEMBER, UUID.randomUUID());
 
-        Claims claims = Jwts.parser()
-                .verifyWith(KEY)
-                .build()
-                .parseSignedClaims(token)
-                .getPayload();
+        Claims claims = parse(adapter.generate(user));
 
         assertThat(claims.getExpiration()).isAfter(new Date());
     }

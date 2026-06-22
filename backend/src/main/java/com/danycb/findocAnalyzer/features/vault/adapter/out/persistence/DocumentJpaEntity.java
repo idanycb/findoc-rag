@@ -19,6 +19,9 @@ public class DocumentJpaEntity {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
+    @Column(name = "team_id", nullable = false)
+    private UUID teamId;
+
     @Column(nullable = false)
     private String fileName;
 
@@ -32,9 +35,6 @@ public class DocumentJpaEntity {
     @Enumerated(EnumType.STRING) // Default is EnumType.ORDINAL which is dangerous
     @Column(nullable = false)
     private DocumentStatus status;
-
-    @Column(columnDefinition = "TEXT")
-    private String aiSummary;
 
     private Instant lastAnalyzedAt;
 

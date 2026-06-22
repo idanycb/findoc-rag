@@ -1,7 +1,7 @@
 package com.danycb.findocAnalyzer.features.identity.application.out;
 
-import java.util.UUID;
+import com.danycb.findocAnalyzer.features.identity.domain.User;
 
 public interface AccessTokenPort {
-    String generate(UUID userId, String username);
+    String generate(User user);
 }

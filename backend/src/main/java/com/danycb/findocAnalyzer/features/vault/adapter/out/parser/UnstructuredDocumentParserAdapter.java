@@ -1,7 +1,7 @@
 package com.danycb.findocAnalyzer.features.vault.adapter.out.parser;
 
 import com.danycb.findocAnalyzer.features.vault.application.out.DocumentParserPort;
-import com.danycb.findocAnalyzer.features.vault.domain.ParsedPage;
+import com.danycb.findocAnalyzer.features.vault.domain.ParsedSection;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.io.ByteArrayResource;
@@ -11,8 +11,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 @Component
 public class UnstructuredDocumentParserAdapter implements DocumentParserPort {
@@ -25,7 +23,7 @@ public class UnstructuredDocumentParserAdapter implements DocumentParserPort {
     }
 
     @Override
-    public List<ParsedPage> parse(byte[] content, String fileName, String contentType) {
+    public List<ParsedSection> parse(byte[] content, String fileName, String contentType) {
         MultipartBodyBuilder builder = new MultipartBodyBuilder();
         builder.part("files", new ByteArrayResource(content))
                 .filename(fileName)
@@ -45,19 +43,8 @@ public class UnstructuredDocumentParserAdapter implements DocumentParserPort {
         }
 
         return elements.stream()
-                .collect(Collectors.groupingBy(UnstructuredResponse::getPageNumber))
-                .entrySet().stream()
-                .sorted(Map.Entry.comparingByKey())
-                .map(entry -> toParsedPage(entry.getValue()))
+                .filter(e -> e.getText() != null && !e.getText().isBlank())
+                .map(e -> new ParsedSection(e.getPageNumber(), e.getText().replace("\0", "")))
                 .toList();
-    }
-
-    private ParsedPage toParsedPage(List<UnstructuredResponse> elements) {
-        int pageNumber = elements.isEmpty() ? 1 : elements.getFirst().getPageNumber();
-        String text = elements.stream()
-                .map(UnstructuredResponse::getText)
-                .filter(t -> t != null && !t.isBlank())
-                .collect(Collectors.joining("\n\n"));
-        return new ParsedPage(pageNumber, text);
     }
 }

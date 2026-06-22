@@ -27,4 +27,8 @@ public class UserJpaEntity {
     @Enumerated(EnumType.STRING) // Default is ORDINAL, but STRING is safer for future changes
     @Column(nullable = false)
     private UserRole role;
+
+    // null for SUPER_ADMIN (teamless); set for ADMIN/MEMBER
+    @Column(name = "team_id")
+    private UUID teamId;
 }

@@ -24,17 +24,18 @@ public class S3UploadEventListener {
 
     @SqsListener(value = "${AWS_SQS_QUEUE_NAME}")
     void onMessage(String messageJson) {
-        log.info("Received analysis message via SQS");
-
         DocumentAnalysisMessage message = normalize(messageJson);
         if (message == null) {
             return;
         }
+        log.info("event=document_analysis_message_received documentId={}", message.documentId());
 
         try {
             analyzeDocumentUseCase.analyze(message.documentId(), message.objectKey());
         } catch (Exception e) {
-            log.error("SQS Pipeline Failure: {}", e.getMessage());
+            log.error(
+                    "event=document_analysis_message_failed documentId={} exception={} reason={}",
+                    message.documentId(), e.getClass().getSimpleName(), e.getMessage(), e);
             throw new RuntimeException("Re-queuing message for retry", e);
         }
     }
@@ -49,7 +50,9 @@ public class S3UploadEventListener {
         } catch (IllegalArgumentException e) {
             throw e;
         } catch (Exception e) {
-            log.warn("Unable to parse SQS message. Skipping. Reason: {}", e.getMessage());
+            log.warn(
+                    "event=document_analysis_message_skipped reason=invalid_payload exception={} detail={}",
+                    e.getClass().getSimpleName(), e.getMessage());
             return null;
         }
     }
@@ -58,7 +61,7 @@ public class S3UploadEventListener {
         S3EventNotification event = S3EventNotification.fromJson(messageJson);
 
         if (event.getRecords() == null || event.getRecords().isEmpty()) {
-            log.warn("Received S3 event with no record. Skipping.");
+            log.warn("event=document_analysis_message_skipped reason=missing_s3_record");
             return null;
         }
 
@@ -66,7 +69,7 @@ public class S3UploadEventListener {
         String s3Key = record.getS3().getObject().getKey();
 
         if (s3Key == null || s3Key.isBlank()) {
-            log.warn("S3 Object key is missing in event. Skipping.");
+            log.warn("event=document_analysis_message_skipped reason=missing_s3_object_key");
             return null;
         }
 

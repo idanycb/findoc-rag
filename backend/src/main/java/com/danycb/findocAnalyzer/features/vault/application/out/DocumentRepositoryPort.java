@@ -18,7 +18,15 @@ public interface DocumentRepositoryPort {
                         "Document not found with id: " + id));
     }
 
-    List<Document> findAll();
+    Optional<Document> findByIdAndTeamId(UUID id, UUID teamId);
+
+    default Document getByIdForTeam(UUID id, UUID teamId) {
+        return findByIdAndTeamId(id, teamId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Document not found with id: " + id));
+    }
+
+    List<Document> findByTeamId(UUID teamId);
 
     void delete(Document document);
 }

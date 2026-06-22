@@ -1,4 +1,4 @@
-package com.danycb.findocAnalyzer.features.vault.adapter.in.web;
+package com.danycb.findocAnalyzer.features.vault.adapter.in.web.dto;
 
 import com.danycb.findocAnalyzer.features.vault.domain.Document;
 import com.danycb.findocAnalyzer.features.vault.domain.DocumentStatus;
@@ -13,7 +13,7 @@ public record DocumentDetailResponse(
         String contentType,
         Instant uploadedAt,
         DocumentStatus status,
-        String aiSummary
+        Instant lastAnalyzedAt
 ) {
     public static DocumentDetailResponse from(Document document) {
         return new DocumentDetailResponse(
@@ -23,7 +23,7 @@ public record DocumentDetailResponse(
                 document.getContentType(),
                 document.getUploadedAt(),
                 document.getStatus(),
-                document.getAiSummary()
+                document.getLastAnalyzedAt()
         );
     }
 }

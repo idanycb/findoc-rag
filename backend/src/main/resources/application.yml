@@ -53,6 +53,7 @@ langchain4j:
       model-name: llama-3.1-8b-instant
       temperature: 0.0
       timeout: 30s
+      max-tokens: 1024
       log-requests: true
       log-responses: true
 

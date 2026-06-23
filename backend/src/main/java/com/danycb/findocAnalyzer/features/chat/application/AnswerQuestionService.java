@@ -17,12 +17,31 @@ public class AnswerQuestionService implements AnswerQuestionUseCase {
     private final LlmPort llm;
     private final VectorSearchPort vectorSearch;
 
+    private static final String NO_ANSWER_MARKER =
+            "The current document vault does not contain information to answer this question.";
+
     @Override
     public String execute(String question, UUID teamId) {
-        List<RetrievedChunk> chunks = vectorSearch.search(question, teamId);
+        String answer = searchAndAnswer(question, question, teamId);
+
+        if (answer.contains(NO_ANSWER_MARKER)) {
+            String searchQuery = llm.rewriteForSearch(question);
+            answer = searchAndAnswer(searchQuery, question, teamId);
+        }
+
+        if (answer.contains(NO_ANSWER_MARKER)) {
+            String hypotheticalAnswer = llm.generateHypotheticalAnswer(question);
+            answer = searchAndAnswer(hypotheticalAnswer, question, teamId);
+        }
+
+        return answer;
+    }
+
+    private String searchAndAnswer(String searchQuery, String question, UUID teamId) {
+        List<RetrievedChunk> chunks = vectorSearch.search(searchQuery, teamId);
 
         if (chunks.isEmpty()) {
-            return "No relevant financial data found in your document vault.";
+            return NO_ANSWER_MARKER;
         }
 
         String context = chunks.stream()

@@ -11,6 +11,32 @@ public class LangChain4jLlmAdapter implements LlmPort {
     private final LangChain4jAiService aiService;
 
     @Override
+    public String rewriteForSearch(String question) {
+        try {
+            return aiService.rewriteForSearch(question);
+        } catch (Exception e) {
+            if (isRateLimitError(e)) {
+                throw new AiAnalysisException(
+                        "AI service is temporarily rate-limited. Please try again in a moment.", e);
+            }
+            throw new AiAnalysisException("Failed to rewrite query for search", e);
+        }
+    }
+
+    @Override
+    public String generateHypotheticalAnswer(String question) {
+        try {
+            return aiService.generateHypotheticalAnswer(question);
+        } catch (Exception e) {
+            if (isRateLimitError(e)) {
+                throw new AiAnalysisException(
+                        "AI service is temporarily rate-limited. Please try again in a moment.", e);
+            }
+            throw new AiAnalysisException("Failed to generate hypothetical answer", e);
+        }
+    }
+
+    @Override
     public String answerWithContext(String context, String question) {
         try {
             return aiService.answerWithContext(context, question);

@@ -98,6 +98,11 @@ class LoginServiceTest {
         public long countByTeamId(UUID teamId) {
             return users.values().stream().filter(u -> teamId.equals(u.teamId())).count();
         }
+
+        @Override
+        public long countAll() {
+            return users.size();
+        }
     }
 
     static class PlaintextPasswordEncoder implements PasswordEncoderPort {

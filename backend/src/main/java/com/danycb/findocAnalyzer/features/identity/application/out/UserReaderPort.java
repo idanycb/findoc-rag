@@ -23,4 +23,6 @@ public interface UserReaderPort {
     long countByRole(UserRole role);
 
     long countByTeamId(UUID teamId);
+
+    long countAll();
 }

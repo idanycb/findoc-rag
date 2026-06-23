@@ -71,6 +71,11 @@ public class UserRepository
     }
 
     @Override
+    public long countAll() {
+        return userJpaRepo.count();
+    }
+
+    @Override
     public void deleteById(UUID id) {
         userJpaRepo.deleteById(id);
     }

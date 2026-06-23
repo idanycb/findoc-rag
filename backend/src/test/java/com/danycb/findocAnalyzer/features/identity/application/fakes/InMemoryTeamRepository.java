@@ -47,6 +47,11 @@ public class InMemoryTeamRepository implements TeamPersistencePort {
     }
 
     @Override
+    public long countAll() {
+        return store.size();
+    }
+
+    @Override
     public void deleteById(UUID id) {
         store.remove(id);
     }

@@ -83,6 +83,11 @@ class DocumentTeamIsolationTest {
         }
 
         @Override
+        public long countAll() {
+            return store.size();
+        }
+
+        @Override
         public void delete(Document document) {
             store.remove(document.getId());
         }

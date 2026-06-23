@@ -1,5 +1,6 @@
 package com.danycb.findocAnalyzer.features.identity.application;
 
+import com.danycb.findocAnalyzer.infra.config.DeploymentLimitsPort;
 import com.danycb.findocAnalyzer.features.identity.application.dto.OnboardCommand;
 import com.danycb.findocAnalyzer.features.identity.application.exception.OnboardingDisabledException;
 import com.danycb.findocAnalyzer.features.identity.application.in.OnboardSuperAdminUseCase;
@@ -19,6 +20,7 @@ public class OnboardSuperAdminService implements OnboardSuperAdminUseCase {
     private final UserReaderPort userExistence;
     private final PasswordEncoderPort passwordEncoder;
     private final IdentityAuditLogger audit;
+    private final DeploymentLimitsPort limits;
 
     @Override
     public boolean isOnboardingEnabled() {
@@ -32,6 +34,8 @@ public class OnboardSuperAdminService implements OnboardSuperAdminUseCase {
             throw new OnboardingDisabledException(
                     "System already initialized; onboarding is disabled");
         }
+
+        limits.assertCanAddUser(userExistence::countAll);
 
         User superAdmin = new User(
                 null,

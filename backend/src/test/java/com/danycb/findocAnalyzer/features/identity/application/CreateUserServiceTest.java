@@ -1,6 +1,10 @@
 package com.danycb.findocAnalyzer.features.identity.application;
 
 import com.danycb.findocAnalyzer.features.identity.application.dto.AuthenticatedUser;
+import com.danycb.findocAnalyzer.infra.config.DeploymentLimitsEnforcer;
+import com.danycb.findocAnalyzer.infra.config.FindocLimitsProperties;
+import com.danycb.findocAnalyzer.infra.config.NoOpDeploymentLimits;
+import com.danycb.findocAnalyzer.infra.exception.LimitExceededException;
 import com.danycb.findocAnalyzer.features.identity.application.dto.CreateUserCommand;
 import com.danycb.findocAnalyzer.features.identity.application.exception.DuplicateUsernameException;
 import com.danycb.findocAnalyzer.features.identity.application.exception.ForbiddenOperationException;
@@ -24,7 +28,7 @@ class CreateUserServiceTest {
     private final InMemoryUserRepository users = new InMemoryUserRepository();
     private final InMemoryTeamRepository teams = new InMemoryTeamRepository();
     private final CreateUserService service =
-            new CreateUserService(users, users, teams, new PlaintextPasswordEncoder(), new NoOpAuditLogger());
+            new CreateUserService(users, users, teams, new PlaintextPasswordEncoder(), new NoOpAuditLogger(), new NoOpDeploymentLimits());
 
     private final UUID teamA = UUID.randomUUID();
     private final UUID teamB = UUID.randomUUID();
@@ -87,5 +91,23 @@ class CreateUserServiceTest {
         assertThatThrownBy(() -> service.create(adminOf(teamA),
                 new CreateUserCommand("taken", "password123", null, null)))
                 .isInstanceOf(DuplicateUsernameException.class);
+    }
+
+    @Test
+    void atUserLimit_isRejected() {
+        FindocLimitsProperties properties = new FindocLimitsProperties();
+        properties.setEnabled(true);
+        properties.setMaxUsers(10);
+        CreateUserService limitedService = new CreateUserService(
+                users, users, teams, new PlaintextPasswordEncoder(), new NoOpAuditLogger(),
+                new DeploymentLimitsEnforcer(properties));
+
+        for (int i = 0; i < 10; i++) {
+            users.seed(new User(UUID.randomUUID(), "user" + i, "h", UserRole.MEMBER, teamA));
+        }
+
+        assertThatThrownBy(() -> limitedService.create(adminOf(teamA),
+                new CreateUserCommand("one-too-many", "password123", null, null)))
+                .isInstanceOf(LimitExceededException.class);
     }
 }

@@ -15,5 +15,7 @@ public interface TeamPersistencePort {
 
     boolean existsByName(String name);
 
+    long countAll();
+
     void deleteById(UUID id);
 }

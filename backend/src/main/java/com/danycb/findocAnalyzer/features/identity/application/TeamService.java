@@ -1,5 +1,6 @@
 package com.danycb.findocAnalyzer.features.identity.application;
 
+import com.danycb.findocAnalyzer.infra.config.DeploymentLimitsPort;
 import com.danycb.findocAnalyzer.features.identity.application.dto.TeamCommand;
 import com.danycb.findocAnalyzer.features.identity.application.exception.DuplicateTeamNameException;
 import com.danycb.findocAnalyzer.features.identity.application.exception.NotFoundException;
@@ -25,6 +26,7 @@ import java.util.UUID;
 public class TeamService implements CreateTeamUseCase, ListTeamsUseCase, UpdateTeamUseCase, DeleteTeamUseCase {
     private final TeamPersistencePort teams;
     private final UserReaderPort users;
+    private final DeploymentLimitsPort limits;
 
     @Override
     @Transactional
@@ -32,6 +34,7 @@ public class TeamService implements CreateTeamUseCase, ListTeamsUseCase, UpdateT
         if (teams.existsByName(command.name())) {
             throw new DuplicateTeamNameException("Team: [" + command.name() + "] already exists");
         }
+        limits.assertCanAddTeam(teams::countAll);
         Team saved = teams.save(new Team(null, command.name(), null));
         log.info("event=team_created teamId={} teamName={}", saved.id(), saved.name());
         return saved;

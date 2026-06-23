@@ -1,5 +1,6 @@
 package com.danycb.findocAnalyzer.features.identity.application;
 
+import com.danycb.findocAnalyzer.infra.config.NoOpDeploymentLimits;
 import com.danycb.findocAnalyzer.features.identity.application.dto.OnboardCommand;
 import com.danycb.findocAnalyzer.features.identity.application.exception.OnboardingDisabledException;
 import com.danycb.findocAnalyzer.features.identity.application.fakes.InMemoryUserRepository;
@@ -18,7 +19,7 @@ class OnboardSuperAdminServiceTest {
 
     private final InMemoryUserRepository users = new InMemoryUserRepository();
     private final OnboardSuperAdminService service =
-            new OnboardSuperAdminService(users, users, new PlaintextPasswordEncoder(), new NoOpAuditLogger());
+            new OnboardSuperAdminService(users, users, new PlaintextPasswordEncoder(), new NoOpAuditLogger(), new NoOpDeploymentLimits());
 
     @Test
     void onboard_onEmptySystem_createsTeamlessSuperAdminWithHashedPassword() {

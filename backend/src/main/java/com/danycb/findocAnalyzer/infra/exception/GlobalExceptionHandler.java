@@ -1,5 +1,6 @@
 package com.danycb.findocAnalyzer.infra.exception;
 
+import com.danycb.findocAnalyzer.infra.exception.LimitExceededException;
 import com.danycb.findocAnalyzer.features.chat.application.AiAnalysisException;
 import com.danycb.findocAnalyzer.features.identity.application.exception.*;
 import com.danycb.findocAnalyzer.features.vault.application.ResourceNotFoundException;
@@ -79,7 +80,8 @@ public class GlobalExceptionHandler {
             OnboardingDisabledException.class,
             DuplicateUsernameException.class,
             DuplicateTeamNameException.class,
-            TeamNotEmptyException.class
+            TeamNotEmptyException.class,
+            LimitExceededException.class
     })
     public ResponseEntity<ErrorResponse> handleConflict(RuntimeException e) {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse(e.getMessage()));

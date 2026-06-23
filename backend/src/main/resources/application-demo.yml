@@ -1,0 +1,12 @@
+spring:
+  config:
+    activate:
+      on-profile: demo
+
+findoc:
+  limits:
+    enabled: true
+    max-documents: 15
+    max-users: 10
+    max-teams: 3
+    max-file-size-bytes: 5242880  # 5 MB

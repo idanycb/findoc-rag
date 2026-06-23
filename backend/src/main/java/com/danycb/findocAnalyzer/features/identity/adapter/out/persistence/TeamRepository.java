@@ -41,6 +41,11 @@ public class TeamRepository implements TeamPersistencePort {
     }
 
     @Override
+    public long countAll() {
+        return teamJpaRepo.count();
+    }
+
+    @Override
     public void deleteById(UUID id) {
         teamJpaRepo.deleteById(id);
     }

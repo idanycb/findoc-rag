@@ -28,5 +28,7 @@ public interface DocumentRepositoryPort {
 
     List<Document> findByTeamId(UUID teamId);
 
+    long countAll();
+
     void delete(Document document);
 }

@@ -1,5 +1,9 @@
 package com.danycb.findocAnalyzer.features.identity.application;
 
+import com.danycb.findocAnalyzer.infra.config.DeploymentLimitsEnforcer;
+import com.danycb.findocAnalyzer.infra.config.FindocLimitsProperties;
+import com.danycb.findocAnalyzer.infra.config.NoOpDeploymentLimits;
+import com.danycb.findocAnalyzer.infra.exception.LimitExceededException;
 import com.danycb.findocAnalyzer.features.identity.application.dto.TeamCommand;
 import com.danycb.findocAnalyzer.features.identity.application.exception.DuplicateTeamNameException;
 import com.danycb.findocAnalyzer.features.identity.application.exception.NotFoundException;
@@ -22,7 +26,7 @@ class TeamServiceTest {
 
     private final InMemoryTeamRepository teams = new InMemoryTeamRepository();
     private final InMemoryUserRepository users = new InMemoryUserRepository();
-    private final TeamService service = new TeamService(teams, users);
+    private final TeamService service = new TeamService(teams, users, new NoOpDeploymentLimits());
 
     @Nested
     class Create {
@@ -41,6 +45,21 @@ class TeamServiceTest {
 
             assertThatThrownBy(() -> service.create(new TeamCommand("Engineering")))
                     .isInstanceOf(DuplicateTeamNameException.class);
+        }
+
+        @Test
+        void atTeamLimit_isRejected() {
+            FindocLimitsProperties properties = new FindocLimitsProperties();
+            properties.setEnabled(true);
+            properties.setMaxTeams(3);
+            TeamService limitedService = new TeamService(teams, users, new DeploymentLimitsEnforcer(properties));
+
+            teams.seed(new Team(UUID.randomUUID(), "One", null));
+            teams.seed(new Team(UUID.randomUUID(), "Two", null));
+            teams.seed(new Team(UUID.randomUUID(), "Three", null));
+
+            assertThatThrownBy(() -> limitedService.create(new TeamCommand("Four")))
+                    .isInstanceOf(LimitExceededException.class);
         }
     }
 

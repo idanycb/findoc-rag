@@ -3,7 +3,7 @@ package com.danycb.findocAnalyzer.features.vault.application.out;
 import java.util.UUID;
 
 public interface ExternalStoragePort {
-    String generateUploadUrl(UUID docId, String contentType);
+    String generateUploadUrl(UUID docId, String contentType, long contentLength);
 
     String generateViewUrl(UUID docId);
 

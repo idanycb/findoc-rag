@@ -1,5 +1,6 @@
 package com.danycb.findocAnalyzer.features.identity.application;
 
+import com.danycb.findocAnalyzer.infra.config.DeploymentLimitsPort;
 import com.danycb.findocAnalyzer.features.identity.application.dto.AuthenticatedUser;
 import com.danycb.findocAnalyzer.features.identity.application.dto.CreateUserCommand;
 import com.danycb.findocAnalyzer.features.identity.application.exception.DuplicateUsernameException;
@@ -31,6 +32,7 @@ public class CreateUserService implements CreateUserUseCase {
     private final TeamPersistencePort teams;
     private final PasswordEncoderPort passwordEncoder;
     private final IdentityAuditLogger audit;
+    private final DeploymentLimitsPort limits;
 
     @Override
     @Transactional
@@ -61,6 +63,8 @@ public class CreateUserService implements CreateUserUseCase {
         if (userExistence.existsByUsername(command.username())) {
             throw new DuplicateUsernameException("Username already taken: " + command.username());
         }
+
+        limits.assertCanAddUser(userExistence::countAll);
 
         User created = new User(
                 null,

@@ -39,6 +39,11 @@ public class DocumentRepository implements DocumentRepositoryPort {
     }
 
     @Override
+    public long countAll() {
+        return jpaRepository.count();
+    }
+
+    @Override
     public void delete(Document document) {
         jpaRepository.deleteById(document.getId());
     }

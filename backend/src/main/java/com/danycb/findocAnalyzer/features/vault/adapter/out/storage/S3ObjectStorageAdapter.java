@@ -32,13 +32,14 @@ public class S3ObjectStorageAdapter implements ExternalStoragePort {
     private String bucketName;
 
     @Override
-    public String generateUploadUrl(UUID docId, String contentType) {
+    public String generateUploadUrl(UUID docId, String contentType, long contentLength) {
         String s3Key = buildObjectKey(docId);
 
         PutObjectRequest putObjectRequest = PutObjectRequest.builder()
                 .bucket(bucketName)
                 .key(s3Key)
                 .contentType(contentType)
+                .contentLength(contentLength)
                 .build();
 
         PutObjectPresignRequest presignRequest = PutObjectPresignRequest.builder()

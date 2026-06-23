@@ -2,15 +2,11 @@ name: Build and push images to GHCR
 
 on:
   push:
-    branches: [main]
-    paths:
-      - backend/**
-      - frontend/**
-      - .github/workflows/deploy.yml
+    tags: ["*"]
 
 jobs:
   detect-changes:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     outputs:
       backend: ${{ steps.filter.outputs.backend }}
       frontend: ${{ steps.filter.outputs.frontend }}
@@ -30,7 +26,7 @@ jobs:
   build-backend:
     needs: detect-changes
     if: ${{ needs.detect-changes.outputs.backend == 'true' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     permissions:
       contents: read
       packages: write
@@ -59,15 +55,15 @@ jobs:
         with:
           images: ${{ steps.vars.outputs.image }}
           tags: |
-            type=raw,value=main-${{ github.run_number }}-${{ github.sha }}
+            type=ref,event=tag
 
       - name: Build and push backend image
         uses: docker/build-push-action@v7
         with:
           context: ./backend
           file: ./backend/Dockerfile
-          platforms: linux/arm64
           push: true
+          provenance: false
           cache-from: type=gha
           cache-to: type=gha,mode=max
           tags: ${{ steps.meta.outputs.tags }}
@@ -76,7 +72,7 @@ jobs:
   build-frontend:
     needs: detect-changes
     if: ${{ needs.detect-changes.outputs.frontend == 'true' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     permissions:
       contents: read
       packages: write
@@ -105,7 +101,7 @@ jobs:
         with:
           images: ${{ steps.vars.outputs.image }}
           tags: |
-            type=raw,value=main-${{ github.run_number }}-${{ github.sha }}
+            type=ref,event=tag
 
       - name: Build and push frontend image
         uses: docker/build-push-action@v7
@@ -114,8 +110,8 @@ jobs:
           file: ./frontend/Dockerfile
           build-args: |
             NEXT_API_DESTINATION=http://backend:8080/api/v1
-          platforms: linux/arm64
           push: true
+          provenance: false
           cache-from: type=gha
           cache-to: type=gha,mode=max
           tags: ${{ steps.meta.outputs.tags }}

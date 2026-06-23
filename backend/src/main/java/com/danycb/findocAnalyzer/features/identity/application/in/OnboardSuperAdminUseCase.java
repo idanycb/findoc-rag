@@ -5,4 +5,6 @@ import com.danycb.findocAnalyzer.features.identity.domain.User;
 
 public interface OnboardSuperAdminUseCase {
     User onboard(OnboardCommand command);
+
+    boolean isOnboardingEnabled();
 }

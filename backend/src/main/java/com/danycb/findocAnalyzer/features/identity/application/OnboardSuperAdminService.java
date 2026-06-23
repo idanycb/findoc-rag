@@ -21,6 +21,11 @@ public class OnboardSuperAdminService implements OnboardSuperAdminUseCase {
     private final IdentityAuditLogger audit;
 
     @Override
+    public boolean isOnboardingEnabled() {
+        return !userExistence.existsAny();
+    }
+
+    @Override
     @Transactional
     public User onboard(OnboardCommand command) {
         if (userExistence.existsAny()) {

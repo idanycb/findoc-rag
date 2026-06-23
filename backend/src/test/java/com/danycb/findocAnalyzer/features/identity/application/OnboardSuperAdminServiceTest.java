@@ -39,4 +39,16 @@ class OnboardSuperAdminServiceTest {
         assertThatThrownBy(() -> service.onboard(new OnboardCommand("root", "password123")))
                 .isInstanceOf(OnboardingDisabledException.class);
     }
+
+    @Test
+    void isOnboardingEnabled_onEmptySystem_returnsTrue() {
+        assertThat(service.isOnboardingEnabled()).isTrue();
+    }
+
+    @Test
+    void isOnboardingEnabled_whenUsersExist_returnsFalse() {
+        users.seed(new User(UUID.randomUUID(), "existing", "h", UserRole.MEMBER, UUID.randomUUID()));
+
+        assertThat(service.isOnboardingEnabled()).isFalse();
+    }
 }

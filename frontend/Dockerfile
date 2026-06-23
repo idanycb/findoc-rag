@@ -1,8 +1,8 @@
 # --- Stage 1: Build ---
-FROM node:20-alpine AS builder
+FROM node:24-alpine AS builder
 WORKDIR /app
 
-RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN corepack enable && corepack prepare pnpm@11.8.0 --activate
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile
 
@@ -15,7 +15,7 @@ ENV NEXT_API_DESTINATION=$NEXT_API_DESTINATION
 RUN pnpm build
 
 # --- Stage 2: Distroless Node.js Runtime ---
-FROM gcr.io/distroless/nodejs20-debian12
+FROM gcr.io/distroless/nodejs24-debian12
 WORKDIR /app
 
 ENV NODE_ENV=production

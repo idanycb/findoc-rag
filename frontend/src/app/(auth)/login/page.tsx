@@ -1,104 +1,55 @@
-'use client';
+import { LoginForm } from '@/features/auth/LoginForm';
 
-import { SubmitEventHandler, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { ShieldCheck } from 'lucide-react';
-import Button from '@/components/ui/Button';
-import Card from '@/components/ui/Card';
-import { setCookie } from '@/lib/api';
+export const metadata = { title: 'Sign in · FinDoc Analyzer' };
 
 export default function LoginPage() {
-  const router = useRouter();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const handleLogin: SubmitEventHandler<HTMLFormElement> = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-
-    try {
-      const formData = new FormData(e.currentTarget as HTMLFormElement);
-      const username = formData.get('username') as string;
-      const password = formData.get('password') as string;
-
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
-      });
-
-      if (response.status === 401) {
-        setError('Invalid credentials');
-        return;
-      }
-
-      if (!response.ok) {
-        throw new Error('Authentication failed');
-      }
-
-      const { accessToken: token } = await response.json();
-      setCookie('jwtToken', token);
-      router.push('/dashboard');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
-    <div className="flex min-h-screen items-center justify-center bg-linear-to-br from-neutral-900 via-neutral-800 to-neutral-700 p-4 sm:p-6">
-      <Card className="w-full max-w-md border-white/15 bg-white/95 p-7 shadow-3xl backdrop-blur-xl sm:p-10">
-        <div className="mb-8 flex flex-col items-center sm:mb-10">
-          <div className="mb-5 rounded-2xl bg-neutral-900 p-4 text-white shadow-2xl shadow-neutral-500/30 sm:mb-6">
-            <ShieldCheck size={32} />
+    <div className="min-h-screen bg-[#EBEBEB] flex items-center justify-center px-6 py-12">
+      <div className="w-full max-w-[900px] overflow-hidden rounded-[20px] bg-white shadow-[0_2px_24px_rgba(0,0,0,.08)] md:flex">
+        <div className="bg-[#111111] px-7 py-9 md:w-[420px] md:flex-none md:p-12 md:flex md:flex-col md:justify-between">
+          <div>
+            <div className="flex items-center gap-[11px]">
+              <div className="flex h-[38px] w-[38px] items-center justify-center rounded-[11px] bg-white">
+                <svg xmlns="http://www.w3.org/2000/svg" width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" className="text-[#111111]"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 13H8"/><path d="M16 17H8"/><path d="M16 13h-2"/></svg>
+              </div>
+              <div>
+                <div className="text-[15px] font-bold text-white">FinDoc</div>
+                <div className="text-[10px] uppercase tracking-[.1em] text-[#777777]">
+                  Analyzer
+                </div>
+              </div>
+            </div>
+            <h2 className="mt-10 text-[28px] font-bold leading-[1.25] tracking-[-.02em] text-white md:block hidden">
+              Financial documents,
+              <br />
+              analyzed and
+              <br />
+              reasoned over.
+            </h2>
+            <h1 className="mt-7 text-2xl font-bold tracking-[-.01em] text-white md:hidden">
+              Sign in
+            </h1>
+            <p className="mt-[6px] text-sm text-[#888888] md:hidden">
+              Access your team&apos;s document vault.
+            </p>
+            <p className="mt-[18px] hidden max-w-[300px] text-sm leading-[1.65] text-[#888888] md:block">
+              Upload PDFs and documents. Get grounded answers through RAG-powered chat.
+            </p>
           </div>
-          <h1 className="text-center text-3xl font-black tracking-tight text-neutral-900">
-            RAG Workspace
-          </h1>
+          <div className="mt-8 hidden flex-wrap gap-2 md:flex">
+            <span className="rounded-md border border-[#333333] bg-[#1E1E1E] px-[11px] py-[5px] text-[11px] font-semibold tracking-[.04em] text-[#555555]">
+              RAG grounded
+            </span>
+            <span className="rounded-md border border-[#333333] bg-[#1E1E1E] px-[11px] py-[5px] text-[11px] font-semibold tracking-[.04em] text-[#555555]">
+              Team-scoped vault
+            </span>
+          </div>
         </div>
 
-        <form onSubmit={handleLogin} className="space-y-6">
-          <div>
-            <label className="mb-2 block text-sm font-bold text-neutral-800">
-              Username
-            </label>
-            <input
-              type="text"
-              name="username"
-              required
-              className="w-full rounded-2xl border border-neutral-300 bg-neutral-100 px-4 py-3 text-black transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-neutral-500"
-            />
-          </div>
-
-          <div>
-            <label className="mb-2 block text-sm font-bold text-neutral-800">
-              Password
-            </label>
-            <input
-              type="password"
-              name="password"
-              required
-              className="w-full rounded-2xl border border-neutral-300 bg-neutral-100 px-4 py-3 text-black transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-neutral-500"
-            />
-          </div>
-
-          {error && (
-            <p className="rounded-xl border border-neutral-300 bg-neutral-100 px-3 py-2 text-sm font-semibold text-neutral-700">
-              {error}
-            </p>
-          )}
-
-          <Button
-            type="submit"
-            className="w-full py-4 shadow-2xl"
-            disabled={loading}
-          >
-            {loading ? 'Authenticating...' : 'Sign In'}
-          </Button>
-        </form>
-      </Card>
+        <div className="flex flex-1 flex-col justify-center px-7 py-8 md:px-12 md:py-12">
+          <LoginForm />
+        </div>
+      </div>
     </div>
   );
 }

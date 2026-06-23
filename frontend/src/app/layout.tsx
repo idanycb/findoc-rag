@@ -1,21 +1,23 @@
 import type { Metadata } from 'next';
-import { Geist, Geist_Mono } from 'next/font/google';
+import { Hanken_Grotesk, JetBrains_Mono } from 'next/font/google';
 import { AuthProvider } from '@/context/AuthContext';
 import './globals.css';
 
-const geistSans = Geist({
-  variable: '--font-geist-sans',
+const hanken = Hanken_Grotesk({
+  variable: '--font-hanken',
   subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
 });
 
-const geistMono = Geist_Mono({
-  variable: '--font-geist-mono',
+const jetbrains = JetBrains_Mono({
+  variable: '--font-jetbrains',
   subsets: ['latin'],
+  weight: ['400', '500'],
 });
 
 export const metadata: Metadata = {
-  title: 'RAG Workspace',
-  description: 'General-purpose retrieval-augmented document workspace',
+  title: 'FinDoc Analyzer',
+  description: 'Financial document analysis and AI Q&A for your team vault.',
 };
 
 export default function RootLayout({
@@ -24,10 +26,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
+    <html lang="en" className={`${hanken.variable} ${jetbrains.variable} h-full`}>
       <body className="min-h-full flex flex-col">
         <AuthProvider>{children}</AuthProvider>
       </body>

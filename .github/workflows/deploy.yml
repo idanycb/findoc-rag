@@ -5,27 +5,7 @@ on:
     tags: ["*"]
 
 jobs:
-  detect-changes:
-    runs-on: ubuntu-24.04-arm
-    outputs:
-      backend: ${{ steps.filter.outputs.backend }}
-      frontend: ${{ steps.filter.outputs.frontend }}
-    steps:
-      - uses: actions/checkout@v6
-
-      - name: Detect changed paths
-        id: filter
-        uses: dorny/paths-filter@v4
-        with:
-          filters: |
-            backend:
-              - 'backend/**'
-            frontend:
-              - 'frontend/**'
-
   build-backend:
-    needs: detect-changes
-    if: ${{ needs.detect-changes.outputs.backend == 'true' }}
     runs-on: ubuntu-24.04-arm
     permissions:
       contents: read
@@ -70,8 +50,6 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
 
   build-frontend:
-    needs: detect-changes
-    if: ${{ needs.detect-changes.outputs.frontend == 'true' }}
     runs-on: ubuntu-24.04-arm
     permissions:
       contents: read

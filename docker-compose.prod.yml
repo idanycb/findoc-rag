@@ -1,0 +1,15 @@
+# Full-stack production overlay. Use: make prod
+services:
+  backend:
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+    restart: unless-stopped
+
+  frontend:
+    restart: unless-stopped
+
+  pgvector:
+    restart: unless-stopped
+
+  unstructured-api:
+    restart: unless-stopped

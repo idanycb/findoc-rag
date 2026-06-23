@@ -1,0 +1,8 @@
+services:
+  pgvector:
+    ports:
+      - "5432:5432"
+
+  unstructured-api:
+    ports:
+      - "8000:8000"

@@ -1,0 +1,15 @@
+# Public demo overlay — enables quotas (15 docs, 10 users, 3 teams, 5 MB uploads).
+# Use: make demo
+services:
+  backend:
+    environment:
+      - SPRING_PROFILES_ACTIVE=demo
+
+  frontend:
+    restart: unless-stopped
+
+  pgvector:
+    restart: unless-stopped
+
+  unstructured-api:
+    restart: unless-stopped

@@ -1,0 +1,115 @@
+# EDGAR Service
+
+A small FastAPI sidecar that wraps [edgartools](https://github.com/dgunning/edgartools) and exposes a handful of JSON endpoints for searching SEC filers, listing their filings, and pulling the text of individual 10-K / 10-Q sections. It exists so the rest of the stack can talk to SEC EDGAR over plain HTTP instead of embedding a Python library and its data-fetching quirks into every service that needs filings.
+
+Runs on port `8100`. Python 3.13, managed with [uv](https://github.com/astral-sh/uv).
+
+## Why it's a separate service
+
+edgartools is Python-only and does a fair amount of network I/O, caching, and HTML parsing under the hood. Keeping it behind a thin API means:
+
+- callers in any language get a stable JSON contract and don't inherit the library's surface area,
+- SEC-specific concerns (identity/User-Agent, rate limits, local caching) live in one place,
+- the messy bits — inconsistent return types, section labelling — get normalised here once.
+
+## Endpoints
+
+| method & path | purpose |
+|---------------|---------|
+| `GET /health` | liveness check |
+| `GET /companies?q=&limit=` | full-text filer search (CIKs zero-padded to 10 digits) |
+| `GET /companies/{ticker_or_cik}/filings?form=&limit=` | list a filer's recent filings, newest first |
+| `GET /filings/sections?ticker=&accession=` | extract 10-K / 10-Q sections from one filing |
+
+That's the summary. The **authoritative, always-current contract** — every param, response schema, and example — is generated from the code by FastAPI. Boot the service and open:
+
+- **`/docs`** — Swagger UI (try requests in the browser; handy when wiring up an integration)
+- **`/redoc`** — reference-style rendering
+- **`/openapi.json`** — the raw spec (import into Postman/Insomnia or generate a client)
+
+A few behaviours worth knowing up front, since they're contract decisions rather than obvious defaults:
+
+- Section extraction is limited to `10-K`, `10-K/A`, `10-Q`, `10-Q/A`; any other form returns `422`.
+- Section labels differ by form on purpose — 10-K items are returned bare (`Item 1A`), 10-Q items keep the part qualifier (`Part II Item 1A`), because 10-Q item numbers restart per part.
+- `fiscalPeriod` is inferred: `FY` for 10-K variants, `null` otherwise.
+- Errors: `404` (filer/filing not found or no sections extracted), `422` (bad params or unsupported form), `502` (upstream edgartools/SEC failure — detail is generic, full traceback is logged server-side).
+
+## Configuration
+
+All via environment variables.
+
+| variable               | required | default          | purpose |
+|------------------------|----------|------------------|---------|
+| `EDGAR_IDENTITY`       | yes*     | —                | User-Agent the SEC requires on every request, e.g. `findoc-analyzer contact@example.com`. `SEC_USER_AGENT` is accepted as an alias. |
+| `EDGAR_LOCAL_DATA_DIR` | no       | `/tmp/edgar/data`| where edgartools stores downloaded data |
+| `EDGAR_CACHE_DIR`      | no       | `/tmp/edgar/cache`| edgartools cache directory |
+
+\* Not enforced at startup — the service logs a warning and runs without it, but the SEC will throttle or reject anonymous traffic, so treat it as required in any real deployment.
+
+## Running locally
+
+```bash
+uv sync
+uv run uvicorn app.main:app --reload --port 8100
+```
+
+The service reads config from the process environment. It does **not** auto-load a `.env` file, so either export the vars or point uv at a file:
+
+```bash
+uv run --env-file .env uvicorn app.main:app --port 8100
+```
+
+`edgar-service/.env` is gitignored. For this repo, the `EDGAR_IDENTITY` value mirrors the one in the root `.env`.
+
+## Docker
+
+```bash
+docker build -t edgar-service .
+docker run -p 8100:8100 -e EDGAR_IDENTITY="findoc-analyzer you@example.com" edgar-service
+```
+
+Under the root `docker-compose.yml` the service is built from `./edgar-service`, reads the shared `.env`, and has `EDGAR_IDENTITY` injected for it — no per-service env file needed in that path.
+
+## Tests
+
+Split by scope:
+
+```
+tests/
+  unit/         pure functions — no network, no HTTP
+  integration/  FastAPI routes via TestClient, service layer mocked
+  e2e/          drives the full app against the real SEC, marked `e2e` and opt-in
+```
+
+The default run stays fast and offline (the `e2e` marker is deselected in `pyproject.toml`):
+
+```bash
+uv run pytest
+```
+
+Run the end-to-end tests against the real SEC when you want a full-stack check. They skip themselves if no identity is set:
+
+```bash
+uv run --env-file .env pytest -m e2e
+```
+
+The e2e tests are deliberately thin — they're slow and subject to SEC rate limits and data drift. The deterministic route/error-mapping coverage lives in `integration/test_routes.py`; the e2e ones only confirm the real SEC integration still holds together.
+
+## Integrating into another project
+
+- Talk to it over HTTP; treat it as an internal service, not something to expose publicly.
+- Always set `EDGAR_IDENTITY` to a real app name + contact — the SEC uses it to identify traffic.
+- Point `EDGAR_LOCAL_DATA_DIR` / `EDGAR_CACHE_DIR` at a persistent volume if you want caching to survive restarts; the `/tmp` defaults don't.
+- The `502` responses wrap any upstream failure, so callers should retry with backoff rather than treating them as permanent.
+- Section text is returned as-is from edgartools with per-line trailing whitespace stripped; it's plain text, not HTML.
+
+## Layout
+
+```
+app/
+  main.py      FastAPI app, routing, HTTP error mapping
+  service.py   edgartools calls + all the normalising logic
+  schemas.py   pydantic response models
+```
+
+`main.py` stays deliberately thin: it validates input, calls `service.py`, and maps exceptions to status codes. Everything else — talking to edgartools, reshaping its output, handling its inconsistencies — lives in `service.py`.

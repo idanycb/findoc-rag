@@ -1,0 +1,32 @@
+[project]
+name = "edgar-service"
+version = "0.1.0"
+description = "Internal SEC EDGAR sidecar backed by edgartools."
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi",
+    "uvicorn[standard]",
+    "edgartools",
+]
+
+[dependency-groups]
+dev = [
+    "pytest",
+    "httpx",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+# Default run excludes end-to-end SEC-network tests; run them with `pytest -m e2e`.
+addopts = "-m 'not e2e'"
+markers = [
+    "e2e: drives the app against the real SEC EDGAR network (slow, flaky, opt-in).",
+]

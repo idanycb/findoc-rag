@@ -59,6 +59,16 @@ public class DocumentRepository implements DocumentRepositoryPort {
                 .status(document.getStatus())
                 .lastAnalyzedAt(document.getLastAnalyzedAt())
                 .version(document.getVersion())
+                .source(document.getSource())
+                .cik(document.getCik())
+                .ticker(document.getTicker())
+                .companyName(document.getCompanyName())
+                .formType(document.getFormType())
+                .fiscalPeriod(document.getFiscalPeriod())
+                .reportDate(document.getReportDate())
+                .filingDate(document.getFilingDate())
+                .accessionNumber(document.getAccessionNumber())
+                .sourceUrl(document.getSourceUrl())
                 .build();
     }
 
@@ -73,6 +83,16 @@ public class DocumentRepository implements DocumentRepositoryPort {
                 .status(entity.getStatus())
                 .lastAnalyzedAt(entity.getLastAnalyzedAt())
                 .version(entity.getVersion())
+                .source(entity.getSource())
+                .cik(entity.getCik())
+                .ticker(entity.getTicker())
+                .companyName(entity.getCompanyName())
+                .formType(entity.getFormType())
+                .fiscalPeriod(entity.getFiscalPeriod())
+                .reportDate(entity.getReportDate())
+                .filingDate(entity.getFilingDate())
+                .accessionNumber(entity.getAccessionNumber())
+                .sourceUrl(entity.getSourceUrl())
                 .build();
     }
 }

@@ -34,10 +34,10 @@ public class PgVectorIndexAdapter implements VectorIndexPort {
 
     @Override
     public void ingest(List<ParsedSection> sections, UUID docId, UUID teamId, String fileName) {
-        Metadata baseMetadata = new Metadata();
-        baseMetadata.put("file_name", fileName);
-        baseMetadata.put("document_id", docId.toString());
-        baseMetadata.put("team_id", teamId.toString());
+        Map<String, Object> baseMetadata = Map.of(
+                "file_name", fileName,
+                "document_id", docId.toString(),
+                "team_id", teamId.toString());
 
         List<TextSegment> segments = new ArrayList<>(sections.size() * 4);
         DocumentSplitter splitter = DocumentSplitters.recursive(MAX_CHILD_CHUNK_SIZE, CHILD_OVERLAP);
@@ -48,9 +48,13 @@ public class PgVectorIndexAdapter implements VectorIndexPort {
             }
 
             String sectionText = section.text();
-            baseMetadata.put("page", section.pageNumber());
-            baseMetadata.put("section_text", sectionText);
-            Map<String, Object> baseMetadataMap = baseMetadata.toMap();
+            Metadata sectionMetadata = new Metadata(baseMetadata);
+            sectionMetadata.put("page", section.pageNumber());
+            sectionMetadata.put("section_text", sectionText);
+            if (section.title() != null && !section.title().isBlank()) {
+                sectionMetadata.put("section_title", section.title());
+            }
+            Map<String, Object> baseMetadataMap = sectionMetadata.toMap();
 
             if (sectionText.length() <= EMBEDDING_SAFE_CHAR_LIMIT) {
                 Metadata metadata = new Metadata(baseMetadataMap);

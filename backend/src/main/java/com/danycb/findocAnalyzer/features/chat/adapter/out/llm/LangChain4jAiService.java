@@ -25,8 +25,8 @@ public interface LangChain4jAiService {
                 Operational Protocols:
                 1. GROUNDING: Only answer using the provided context. If the answer isn't there,
                    state clearly: "The current document vault does not contain information to answer this question."
-                2. CITATIONS: You MUST cite the Source and Page number for every claim.
-                   Format: [Source: filename, Pg: #].
+                2. CITATIONS: You MUST cite the file, section when present, and page number for every claim.
+                   Format citations exactly as they appear in context, for example: [AAPL 10-K FY2024 - Item 1A Risk Factors, Pg 12].
                 3. SYNTHESIS: If multiple sources are provided, synthesize them into a coherent narrative.
                    If sources conflict, present both views and note the source for each.
                 4. STRUCTURE: Use professional formatting, including bullet points or tables where appropriate for clarity.

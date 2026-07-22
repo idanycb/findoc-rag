@@ -4,8 +4,10 @@ import com.danycb.findocAnalyzer.features.vault.application.in.AnalyzeDocumentUs
 import com.danycb.findocAnalyzer.features.vault.application.out.DocumentParserPort;
 import com.danycb.findocAnalyzer.features.vault.application.out.DocumentRepositoryPort;
 import com.danycb.findocAnalyzer.features.vault.application.out.ExternalStoragePort;
+import com.danycb.findocAnalyzer.features.vault.application.out.FilingSectionsPort;
 import com.danycb.findocAnalyzer.features.vault.application.out.VectorIndexPort;
 import com.danycb.findocAnalyzer.features.vault.domain.Document;
+import com.danycb.findocAnalyzer.features.vault.domain.DocumentSource;
 import com.danycb.findocAnalyzer.features.vault.domain.ParsedSection;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -19,6 +21,7 @@ public class AnalyzeDocumentService implements AnalyzeDocumentUseCase {
     private final DocumentRepositoryPort repository;
     private final ExternalStoragePort objectStorage;
     private final DocumentParserPort documentParser;
+    private final FilingSectionsPort filingSections;
     private final VectorIndexPort vectorIndex;
     private final VaultAuditLogger auditLogger;
 
@@ -41,8 +44,7 @@ public class AnalyzeDocumentService implements AnalyzeDocumentUseCase {
         auditLogger.analysisStarted(document);
 
         try {
-            byte[] content = objectStorage.download(objectKey);
-            List<ParsedSection> sections = documentParser.parse(content, document.getFileName(), document.getContentType());
+            List<ParsedSection> sections = sectionsFor(document, objectKey);
             vectorIndex.ingest(sections, docId, document.getTeamId(), document.getFileName());
 
             document.markCompleted();
@@ -53,5 +55,14 @@ public class AnalyzeDocumentService implements AnalyzeDocumentUseCase {
         } finally {
             repository.save(document);
         }
+    }
+
+    private List<ParsedSection> sectionsFor(Document document, String objectKey) {
+        if (document.getSource() == DocumentSource.EDGAR) {
+            return filingSections.fetchSections(document.getTicker(), document.getAccessionNumber());
+        }
+
+        byte[] content = objectStorage.download(objectKey);
+        return documentParser.parse(content, document.getFileName(), document.getContentType());
     }
 }

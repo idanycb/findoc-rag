@@ -45,12 +45,19 @@ public class AnswerQuestionService implements AnswerQuestionUseCase {
         }
 
         String context = chunks.stream()
-                .map(chunk -> String.format("[File: %s, Pg: %s] %s",
-                        chunk.fileName(),
+                .map(chunk -> String.format("[%s, Pg %s] %s",
+                        sourceLabel(chunk),
                         chunk.page(),
                         chunk.text()))
                 .collect(Collectors.joining("\n\n---\n\n"));
 
         return llm.answerWithContext(context, question);
+    }
+
+    private String sourceLabel(RetrievedChunk chunk) {
+        if (chunk.title() == null || chunk.title().isBlank()) {
+            return chunk.fileName();
+        }
+        return chunk.fileName() + " - " + chunk.title();
     }
 }

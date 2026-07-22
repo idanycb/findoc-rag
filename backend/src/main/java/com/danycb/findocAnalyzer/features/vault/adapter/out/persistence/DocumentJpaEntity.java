@@ -1,10 +1,12 @@
 package com.danycb.findocAnalyzer.features.vault.adapter.out.persistence;
 
+import com.danycb.findocAnalyzer.features.vault.domain.DocumentSource;
 import com.danycb.findocAnalyzer.features.vault.domain.DocumentStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.UUID;
 
 @Entity
@@ -41,8 +43,34 @@ public class DocumentJpaEntity {
     @Version
     private Integer version;
 
+    private String cik;
+
+    private String ticker;
+
+    private String companyName;
+
+    private String formType;
+
+    private String fiscalPeriod;
+
+    private LocalDate reportDate;
+
+    private LocalDate filingDate;
+
+    private String accessionNumber;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    @Builder.Default
+    private DocumentSource source = DocumentSource.UPLOAD;
+
+    private String sourceUrl;
+
     @PrePersist
     protected void onCreate() {
         this.uploadedAt = Instant.now();
+        if (this.source == null) {
+            this.source = DocumentSource.UPLOAD;
+        }
     }
 }

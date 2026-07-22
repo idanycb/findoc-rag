@@ -46,16 +46,23 @@ spring:
       thread-name-prefix: ai-worker-
 
 langchain4j:
-  open-ai:
+  google-ai-gemini:
     chat-model:
-      api-key: ${GROQ_API_KEY}
-      base-url: https://api.groq.com/openai/v1
-      model-name: llama-3.1-8b-instant
-      temperature: 0.0
+      api-key: ${GEMINI_API_KEY}
+      base-url: https://generativelanguage.googleapis.com/v1beta
+      model-name: gemini-2.5-flash-lite
+      temperature: 0.7
       timeout: 30s
-      max-tokens: 1024
-      log-requests: true
-      log-responses: true
+      max-output-tokens: 4096
+      max-retries: 2
+      log-requests-and-responses: true
+
+docling:
+  url: ${DOCLING_URL:http://localhost:5001}
+  timeout: ${DOCLING_TIMEOUT:PT5M}
+
+edgar:
+  url: ${EDGAR_SERVICE_URL:http://localhost:8100}
 
 logging:
   level:

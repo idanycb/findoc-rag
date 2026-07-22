@@ -29,7 +29,8 @@ public class VectorConfig {
                         MetadataColumDefinition.from("team_id UUID").getFullDefinition(),
                         MetadataColumDefinition.from("file_name VARCHAR(255)").getFullDefinition(),
                         MetadataColumDefinition.from("page INT").getFullDefinition(),
-                        MetadataColumDefinition.from("section_text TEXT").getFullDefinition()
+                        MetadataColumDefinition.from("section_text TEXT").getFullDefinition(),
+                        MetadataColumDefinition.from("section_title TEXT").getFullDefinition()
                 ))
                 .build();
 

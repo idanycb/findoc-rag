@@ -58,6 +58,7 @@ public class PgVectorSearchAdapter implements VectorSearchPort {
         return new RetrievedChunk(
                 match.embeddingId(),
                 segment.metadata().getString("file_name"),
+                segment.metadata().getString("section_title"),
                 segment.metadata().getInteger("page"),
                 sectionText != null ? sectionText : segment.text()
         );

@@ -7,6 +7,7 @@ import { usePathname } from 'next/navigation';
 import {
   FileText,
   FolderOpen,
+  Landmark,
   MessageSquare,
   Users,
   UsersRound,
@@ -110,6 +111,12 @@ export function AppSidebar() {
               icon={<MessageSquare size={17} />}
               label="RAG Chat"
               active={pathname === '/chat'}
+            />
+            <NavItem
+              href="/edgar"
+              icon={<Landmark size={17} />}
+              label="SEC EDGAR"
+              active={pathname === '/edgar'}
             />
             {isAdmin && (
               <NavItem

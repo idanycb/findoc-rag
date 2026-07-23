@@ -1,5 +1,6 @@
 export type UserRole = 'SUPER_ADMIN' | 'ADMIN' | 'MEMBER';
 export type DocumentStatus = 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
+export type DocumentSource = 'UPLOAD' | 'EDGAR' | string;
 
 export interface JwtClaims {
   sub: string;
@@ -29,6 +30,16 @@ export interface DocumentSummaryResponse {
   contentType: string;
   uploadedAt: string;
   status: DocumentStatus;
+  source?: DocumentSource | null;
+  ticker?: string | null;
+  cik?: string | null;
+  companyName?: string | null;
+  formType?: string | null;
+  fiscalPeriod?: string | null;
+  reportDate?: string | null;
+  filingDate?: string | null;
+  accessionNumber?: string | null;
+  sourceUrl?: string | null;
 }
 
 export interface DocumentDetailResponse extends DocumentSummaryResponse {
@@ -40,6 +51,38 @@ export interface UploadResult {
   fileName: string;
   status: DocumentStatus;
   uploadUrl: string;
+}
+
+export interface EdgarCompany {
+  ticker?: string | null;
+  cik?: string | number | null;
+  name?: string | null;
+  companyName?: string | null;
+}
+
+export interface EdgarFiling {
+  accession?: string | null;
+  accessionNumber?: string | null;
+  form?: string | null;
+  formType?: string | null;
+  filingDate?: string | null;
+  reportDate?: string | null;
+  fiscalPeriod?: string | null;
+  sourceUrl?: string | null;
+}
+
+export interface EdgarImportRequest {
+  ticker: string;
+  accession?: string;
+  accessionNumber?: string;
+}
+
+export interface EdgarImportResult {
+  documentId?: string | null;
+  id?: string | null;
+  fileName?: string | null;
+  status?: DocumentStatus | string | null;
+  message?: string | null;
 }
 
 export interface AuthContextType {

@@ -10,6 +10,7 @@ import {
   Download,
   Check,
   MessageSquare,
+  Landmark,
 } from 'lucide-react';
 import { apiCall, ApiError } from '@/shared/lib/api';
 import { fetchViewUrl } from '@/shared/lib/documents';
@@ -22,6 +23,14 @@ import { useRequireRole } from '@/shared/hooks/useRequireRole';
 
 const POLL_INTERVAL = 4000;
 const DOCUMENT_DETAIL_ROLES = ['ADMIN', 'MEMBER'] as const;
+
+function isEdgarDocument(doc: DocumentDetailResponse) {
+  return doc.source === 'EDGAR';
+}
+
+function filingSummary(doc: DocumentDetailResponse) {
+  return [doc.ticker, doc.formType, doc.fiscalPeriod].filter(Boolean).join(' · ');
+}
 
 export function DocumentDetailClient({ id }: { id: string }) {
   const { token } = useAuth();
@@ -73,6 +82,10 @@ export function DocumentDetailClient({ id }: { id: string }) {
   const handleView = async () => {
     setActionError('');
     try {
+      if (doc?.sourceUrl) {
+        window.open(doc.sourceUrl, '_blank', 'noopener,noreferrer');
+        return;
+      }
       const viewUrl = await fetchViewUrl(id, token);
       window.open(viewUrl, '_blank', 'noopener,noreferrer');
     } catch (err) {
@@ -110,6 +123,9 @@ export function DocumentDetailClient({ id }: { id: string }) {
   const canAnalyze = doc.status === 'PENDING' || doc.status === 'FAILED';
   const canOpenChat = doc.status === 'COMPLETED';
   const analysisQueued = doc.status === 'PENDING' || doc.status === 'PROCESSING';
+  const edgarDocument = isEdgarDocument(doc);
+  const viewLabel = edgarDocument ? 'View SEC filing' : 'View file';
+  const rawActionLabel = edgarDocument ? 'Open SEC source' : 'Download raw file';
   const analyzeLabel = analyzing
     ? 'Requesting…'
     : doc.status === 'FAILED'
@@ -117,6 +133,27 @@ export function DocumentDetailClient({ id }: { id: string }) {
       : doc.status === 'COMPLETED'
         ? 'Analysis complete'
         : 'Analyze';
+  const detailRows: Array<[string, string]> = [
+    ['File name', doc.fileName],
+    ...(edgarDocument
+      ? [
+          ['Company', doc.companyName || 'Unknown'],
+          ['Ticker', doc.ticker || 'Not reported'],
+          ['CIK', doc.cik || 'Not reported'],
+          ['Form type', doc.formType || 'Not reported'],
+          ['Fiscal period', doc.fiscalPeriod || 'Not reported'],
+          ['Report date', doc.reportDate ? formatDate(doc.reportDate) : 'Not reported'],
+          ['Filing date', doc.filingDate ? formatDate(doc.filingDate) : 'Not reported'],
+          ['Accession number', doc.accessionNumber || 'Not reported'],
+        ] satisfies Array<[string, string]>
+      : [
+          ['Content type', doc.contentType],
+          ['File size', formatBytes(doc.fileSize)],
+        ] satisfies Array<[string, string]>),
+    ['Uploaded at', formatDate(doc.uploadedAt)],
+    ['Last analyzed at', doc.lastAnalyzedAt ? formatDate(doc.lastAnalyzedAt) : 'Never'],
+    ['Document ID', doc.id],
+  ];
 
   return (
     <>
@@ -130,7 +167,14 @@ export function DocumentDetailClient({ id }: { id: string }) {
         </Link>
         <div className="flex-1 min-w-0">
           <div className="text-[11px] text-[#AAAAAA]">Workspace / Document</div>
-          <h1 className="text-lg font-bold text-[#111111] truncate">{doc.fileName}</h1>
+          <div className="flex min-w-0 items-center gap-2">
+            <h1 className="truncate text-lg font-bold text-[#111111]">{doc.fileName}</h1>
+            {edgarDocument && (
+              <span className="hidden rounded-full bg-[#F5F5F5] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[.08em] text-[#555555] sm:inline-flex">
+                EDGAR
+              </span>
+            )}
+          </div>
         </div>
         <div className="hidden sm:flex items-center gap-[10px]">
           <button
@@ -138,7 +182,7 @@ export function DocumentDetailClient({ id }: { id: string }) {
             className="flex items-center gap-[7px] border border-[#E5E5E5] bg-white text-[#333333] text-[13.5px] font-medium px-[14px] h-9 rounded-lg hover:bg-[#F5F5F5] transition-colors"
           >
             <Eye size={15} />
-            View file
+            {viewLabel}
           </button>
           <button
             onClick={handleAnalyze}
@@ -180,21 +224,20 @@ export function DocumentDetailClient({ id }: { id: string }) {
                     ? 'Analysis failed · re-run analysis to retry'
                     : 'Queued for analysis'}
             </div>
+            {edgarDocument && filingSummary(doc) && (
+              <div className="flex items-center gap-[6px] text-[13.5px] font-semibold text-[#333333]">
+                <Landmark size={14} className="text-[#666666]" />
+                {filingSummary(doc)}
+              </div>
+            )}
           </div>
 
           <div className="rounded-[14px] bg-white p-6 shadow-[0_1px_4px_rgba(0,0,0,.06)]">
             <div className="mb-[18px] text-[11px] font-bold uppercase tracking-[.12em] text-[#AAAAAA]">
-              File Information
+              {edgarDocument ? 'Filing Information' : 'File Information'}
             </div>
             <div className="grid grid-cols-1 gap-[18px] sm:grid-cols-2">
-              {[
-                ['File name', doc.fileName],
-                ['Content type', doc.contentType],
-                ['File size', formatBytes(doc.fileSize)],
-                ['Uploaded at', formatDate(doc.uploadedAt)],
-                ['Last analyzed at', doc.lastAnalyzedAt ? formatDate(doc.lastAnalyzedAt) : 'Never'],
-                ['Document ID', doc.id],
-              ].map(([label, value]) => (
+              {detailRows.map(([label, value]) => (
                 <div key={label}>
                   <div className="mb-1 text-xs text-[#AAAAAA]">{label}</div>
                   <div
@@ -289,7 +332,7 @@ export function DocumentDetailClient({ id }: { id: string }) {
                 className="flex items-center gap-[10px] w-full rounded-[9px] px-3 py-[11px] text-sm font-medium text-[#333333] hover:bg-[#F5F5F5]"
               >
                 <Download size={15} className="text-[#666666]" />
-                Download raw file
+                {rawActionLabel}
               </button>
               <button
                 onClick={handleAnalyze}

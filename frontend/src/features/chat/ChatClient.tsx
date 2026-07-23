@@ -17,10 +17,10 @@ interface Message {
 }
 
 const SUGGESTIONS = [
-  'Summarize FY25 risks',
-  'Compare Q3 vs Q4 cash flow',
-  'List EMEA exposures',
-  'What is the operating margin trend?',
+  'Summarize the risk factors',
+  'What changed in MD&A?',
+  'Highlight liquidity concerns',
+  'Compare this filing to prior reports',
 ];
 const MAX_QUESTION_LENGTH = 1000;
 const CHAT_ROLES = ['ADMIN', 'MEMBER'] as const;

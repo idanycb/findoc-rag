@@ -3,7 +3,7 @@
 import { useAuth } from '@/context/AuthContext';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { FolderOpen, MessageSquare, Users, UsersRound } from 'lucide-react';
+import { FolderOpen, Landmark, MessageSquare, Users, UsersRound } from 'lucide-react';
 
 interface MobileNavItemProps {
   href: string;
@@ -65,6 +65,12 @@ export function MobileNav() {
             icon={<MessageSquare size={20} />}
             label="Chat"
             active={pathname === '/chat'}
+          />
+          <MobileNavItem
+            href="/edgar"
+            icon={<Landmark size={20} />}
+            label="EDGAR"
+            active={pathname === '/edgar'}
           />
           {isAdmin && (
             <MobileNavItem

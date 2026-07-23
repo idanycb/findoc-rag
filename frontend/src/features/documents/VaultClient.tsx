@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react';
 import Link from 'next/link';
-import { ChevronRight, FileText, Search, Trash2, Upload } from 'lucide-react';
+import { ChevronRight, FileText, Landmark, Search, Trash2, Upload } from 'lucide-react';
 import { apiCall, ApiError } from '@/shared/lib/api';
 import { uploadDocument } from '@/shared/lib/documents';
 import { formatBytes, formatDate } from '@/shared/lib/auth';
@@ -28,6 +28,14 @@ function fileColor(contentType: string) {
 
 function documentActionLabel(status: DocumentSummaryResponse['status']) {
   return status === 'FAILED' ? 'Retry analysis' : 'View Details';
+}
+
+function isEdgarDocument(doc: DocumentSummaryResponse) {
+  return doc.source === 'EDGAR';
+}
+
+function filingSummary(doc: DocumentSummaryResponse) {
+  return [doc.ticker, doc.formType, doc.fiscalPeriod].filter(Boolean).join(' · ');
 }
 
 export function VaultClient() {
@@ -77,9 +85,16 @@ export function VaultClient() {
     }
   };
 
-  const filtered = docs.filter((d) =>
-    d.fileName.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = docs.filter((d) => {
+    const haystack = [
+      d.fileName,
+      d.ticker,
+      d.companyName,
+      d.formType,
+      d.accessionNumber,
+    ].filter(Boolean).join(' ');
+    return haystack.toLowerCase().includes(search.toLowerCase());
+  });
 
   const total = docs.length;
   const completed = docs.filter((d) => d.status === 'COMPLETED').length;
@@ -187,6 +202,7 @@ export function VaultClient() {
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
             {filtered.map((doc) => {
               const color = fileColor(doc.contentType);
+              const edgarDocument = isEdgarDocument(doc);
               return (
                 <article
                   key={doc.id}
@@ -196,14 +212,30 @@ export function VaultClient() {
                     <div
                       className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#F5F5F5]"
                     >
-                      <FileText size={20} style={{ color }} strokeWidth={1.8} />
+                      {edgarDocument ? (
+                        <Landmark size={20} className="text-[#111111]" strokeWidth={1.8} />
+                      ) : (
+                        <FileText size={20} style={{ color }} strokeWidth={1.8} />
+                      )}
                     </div>
-                    <StatusBadge status={doc.status} />
+                    <div className="flex flex-col items-end gap-2">
+                      <StatusBadge status={doc.status} />
+                      {edgarDocument && (
+                        <span className="rounded-full bg-[#F5F5F5] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[.08em] text-[#555555]">
+                          EDGAR
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <Link href={`/vault/documents/${doc.id}`} className="mt-[14px] block">
                     <h2 className="truncate text-[15px] font-bold text-[#111111]">
                       {doc.fileName}
                     </h2>
+                    {edgarDocument && filingSummary(doc) && (
+                      <p className="mt-[3px] truncate text-[13px] font-semibold text-[#555555]">
+                        {filingSummary(doc)}
+                      </p>
+                    )}
                     <p className="mt-[3px] text-[13px] text-[#AAAAAA]">
                       {doc.status === 'COMPLETED'
                         ? `Indexed on ${formatDate(doc.uploadedAt)}`
@@ -221,7 +253,7 @@ export function VaultClient() {
                     </Link>
                     <div className="flex items-center gap-2">
                       <span className="hidden text-xs text-[#AAAAAA] sm:inline">
-                        {formatBytes(doc.fileSize)}
+                        {edgarDocument ? doc.companyName || doc.ticker || 'SEC filing' : formatBytes(doc.fileSize)}
                       </span>
                       <button
                         onClick={() => handleDelete(doc.id)}

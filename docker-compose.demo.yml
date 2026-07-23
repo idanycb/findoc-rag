@@ -11,5 +11,8 @@ services:
   pgvector:
     restart: unless-stopped
 
-  unstructured-api:
+  docling-serve:
+    restart: unless-stopped
+
+  edgar-service:
     restart: unless-stopped

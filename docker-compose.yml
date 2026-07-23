@@ -16,15 +16,25 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql
 
-  unstructured-api:
-    image: downloads.unstructured.io/unstructured-io/unstructured-api:latest
+  docling-serve:
+    image: quay.io/docling-project/docling-serve-cpu:v1.21.0
     environment:
-      - UNSTRUCTURED_MEMORY_FREE_MINIMUM_MB=0
-      - PORT=8000
+      - DOCLING_SERVE_ENABLE_UI=1
     deploy:
       resources:
         limits:
           memory: 4G # Local safety cap
+
+  edgar-service:
+    build:
+      context: ./edgar-service
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    environment:
+      - EDGAR_IDENTITY=${EDGAR_IDENTITY:-}
+      - EDGAR_LOCAL_DATA_DIR=/tmp/edgar/data
+      - EDGAR_CACHE_DIR=/tmp/edgar/cache
 
   backend:
     build:
@@ -33,15 +43,17 @@ services:
     depends_on:
       pgvector:
         condition: service_healthy
-      unstructured-api:
+      docling-serve:
+        condition: service_started
+      edgar-service:
         condition: service_started
     env_file:
       - .env
     environment:
       - POSTGRES_URL=jdbc:postgresql://pgvector:5432/${POSTGRES_DB}
       - SPRING_DATASOURCE_URL=jdbc:postgresql://pgvector:5432/${POSTGRES_DB}
-      - UNSTRUCTURED_API_URL=http://unstructured-api:8000
-      - UNSTRUCTURED_URL=http://unstructured-api:8000/general/v0/general
+      - DOCLING_URL=http://docling-serve:5001
+      - EDGAR_SERVICE_URL=http://edgar-service:8100
 
   frontend:
     build:

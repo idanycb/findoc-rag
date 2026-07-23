@@ -3,6 +3,10 @@ services:
     ports:
       - "5432:5432"
 
-  unstructured-api:
+  docling-serve:
     ports:
-      - "8000:8000"
+      - "5001:5001"
+
+  edgar-service:
+    ports:
+      - "8100:8100"

@@ -1,20 +1,19 @@
 # FinDoc Analyzer Frontend
 
-Modern Next.js frontend for document ingestion, audit visibility, and AI-assisted Q&A.
+Modern Next.js frontend for document ingestion, SEC EDGAR filing import, and AI-assisted Q&A.
 
 ## For Users
 
 - Sign in to access your workspace.
-- Upload documents and monitor processing status.
-- Supports document upload, insight viewing, and deletion.
-- Provides an audit log view for archival/compliance tracking.
-- Enables chat-based financial Q&A grounded in uploaded documents.
+- Upload documents or import SEC EDGAR filings and monitor processing status.
+- Supports document upload, filing browse/import, insight viewing, and deletion.
+- Enables chat-based financial Q&A grounded in indexed workspace documents and filings.
 
 ## Main Screens
 
 - `/login` - authentication
-- `/dashboard` - document vault and document actions
-- `/audit` - audit/compliance history
+- `/vault` - document vault and document actions
+- `/edgar` - SEC company search and filing import
 - `/chat` - AI analyst conversation
 
 ## For Developers
@@ -31,7 +30,7 @@ Modern Next.js frontend for document ingestion, audit visibility, and AI-assiste
 
 - Node.js 20+
 - pnpm 9+
-- Running backend API for authentication, documents, and chat
+- Running backend API for authentication, documents, EDGAR, and chat
 
 ## Quick Start
 
@@ -62,7 +61,7 @@ pnpm format:check # Check code formatting
 ## Project Structure
 
 - `src/app` - App Router pages and layouts
-- `src/features` - domain UI (vault, audit, chat, upload, insights)
+- `src/features` - domain UI (vault, EDGAR, chat, upload)
 - `src/context` - auth state and logout behavior
-- `src/hooks` - document data hooks
-- `src/lib` - API helpers and shared types
+- `src/shared/hooks` - document data hooks
+- `src/shared/lib` and `src/shared/types` - API helpers and shared types

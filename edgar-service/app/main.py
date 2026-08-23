@@ -6,7 +6,6 @@ from .schemas import CompanyResult, FilingResult, FilingSectionsResponse
 from .service import (
     configure_edgar,
     get_filing_sections,
-    limit_range,
     list_filings,
     search_companies,
 )
@@ -30,7 +29,7 @@ app = FastAPI(
 # Reusable error-response docs so Swagger/ReDoc show the non-2xx contract.
 UPSTREAM_ERROR = {502: {"description": "Upstream edgartools/SEC call failed; retry with backoff."}}
 NOT_FOUND = {404: {"description": "Filer or filing not found, or no sections extracted."}}
-UNSUPPORTED_FORM = {422: {"description": "Section extraction requested for an unsupported form."}}
+UNSUPPORTED_FORM = {422: {"description": "Form type is not 10-K, 10-K/A, 10-Q, or 10-Q/A."}}
 
 
 @app.get("/health", summary="Liveness check", tags=["meta"])
@@ -63,20 +62,28 @@ def companies(
     summary="List a filer's filings",
     description=(
         "Lists a filer's most recent filings of a given form, newest first. "
-        "The path accepts a ticker (`AAPL`) or a CIK (`320193` or `0000320193`)."
+        "The path accepts a ticker (`AAPL`) or a CIK (`320193` or `0000320193`). "
+        "For `10-K/A` and `10-Q/A`, `amendsAccessionNumber` is the original filing "
+        "with the same period of report, when one can be matched."
     ),
-    responses={**NOT_FOUND, **UPSTREAM_ERROR},
+    responses={**NOT_FOUND, **UNSUPPORTED_FORM, **UPSTREAM_ERROR},
     tags=["companies"],
 )
 def company_filings(
     ticker_or_cik: str,
-    form: str = Query(default="10-K", min_length=1, description="EDGAR form type, e.g. 10-K or 10-Q."),
+    form: str = Query(
+        default="10-K",
+        min_length=1,
+        description="10-K, 10-K/A, 10-Q, or 10-Q/A. Anything else returns 422.",
+    ),
     limit: int = Query(default=20, ge=1, le=50, description="Max filings to return."),
 ) -> list[FilingResult]:
     try:
-        return list_filings(ticker_or_cik, form=form, limit=limit_range(limit, 1, 50))
+        return list_filings(ticker_or_cik, form=form, limit=limit)
     except LookupError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     except Exception as exc:  # noqa: BLE001 - convert library/network errors to an API contract.
         logger.exception("Filing list failed")
         raise HTTPException(status_code=502, detail="EDGAR filing lookup failed.") from exc
@@ -91,7 +98,7 @@ def company_filings(
         "Supported for 10-K, 10-K/A, 10-Q, and 10-Q/A only. 10-K items are returned bare "
         "(`Item 1A`); 10-Q items keep the part qualifier (`Part II Item 1A`)."
     ),
-    responses={**NOT_FOUND, **UNSUPPORTED_FORM, **UPSTREAM_ERROR},
+    responses={**NOT_FOUND, **UPSTREAM_ERROR},
     tags=["filings"],
 )
 def filing_sections(
@@ -102,8 +109,6 @@ def filing_sections(
         return get_filing_sections(ticker, accession)
     except LookupError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
-    except ValueError as exc:
-        raise HTTPException(status_code=422, detail=str(exc)) from exc
     except Exception as exc:  # noqa: BLE001 - convert library/network errors to an API contract.
         logger.exception("Section extraction failed")
         raise HTTPException(status_code=502, detail="EDGAR section extraction failed.") from exc

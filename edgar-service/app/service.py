@@ -1,12 +1,9 @@
 import logging
 import os
-from dataclasses import dataclass
 from typing import Any, Optional
 
 from .schemas import (
-    CompanyMetadata,
     CompanyResult,
-    FilingMetadata,
     FilingResult,
     FilingSection,
     FilingSectionsResponse,
@@ -15,7 +12,7 @@ from .schemas import (
 logger = logging.getLogger(__name__)
 
 
-SUPPORTED_SECTION_FORMS = {"10-K", "10-K/A", "10-Q", "10-Q/A"}
+SUPPORTED_FORMS = {"10-K", "10-K/A", "10-Q", "10-Q/A"}
 
 TEN_K_SECTION_TITLES = {
     "Item 1": "Business",
@@ -58,30 +55,14 @@ TEN_Q_SECTION_TITLES = {
 }
 
 
-@dataclass(frozen=True)
-class EdgarSettings:
-    identity: Optional[str]
-    local_data_dir: str
-    cache_dir: str
-
-    @classmethod
-    def from_env(cls) -> "EdgarSettings":
-        return cls(
-            identity=os.getenv("EDGAR_IDENTITY") or os.getenv("SEC_USER_AGENT"),
-            local_data_dir=os.getenv("EDGAR_LOCAL_DATA_DIR", "/tmp/edgar/data"),
-            cache_dir=os.getenv("EDGAR_CACHE_DIR", "/tmp/edgar/cache"),
-        )
-
-
-def configure_edgar(settings: Optional[EdgarSettings] = None) -> None:
-    settings = settings or EdgarSettings.from_env()
-    os.environ.setdefault("EDGAR_LOCAL_DATA_DIR", settings.local_data_dir)
-    os.environ.setdefault("EDGAR_CACHE_DIR", settings.cache_dir)
-
-    if settings.identity:
+def configure_edgar() -> None:
+    os.environ.setdefault("EDGAR_LOCAL_DATA_DIR", "/tmp/edgar/data")
+    os.environ.setdefault("EDGAR_CACHE_DIR", "/tmp/edgar/cache")
+    identity = os.getenv("EDGAR_IDENTITY") or os.getenv("SEC_USER_AGENT")
+    if identity:
         from edgar import set_identity
 
-        set_identity(settings.identity)
+        set_identity(identity)
     else:
         logger.warning(
             "EDGAR_IDENTITY is not set. SEC requests may be rejected; set it to an app/contact user agent."
@@ -101,15 +82,24 @@ def search_companies(query: str, limit: int = 10) -> list[CompanyResult]:
 
 
 def list_filings(ticker_or_cik: str, form: str = "10-K", limit: int = 20) -> list[FilingResult]:
+    if form not in SUPPORTED_FORMS:
+        raise ValueError(f"Filing lookup is supported for {sorted(SUPPORTED_FORMS)}, not {form}.")
     company = get_company(ticker_or_cik)
-    filings = company.get_filings(form=form)
+    # edgartools expands "10-K" to include "10-K/A" unless amendments=False, but the same
+    # flag strips "/A" from "10-K/A". Request exact forms: originals without expansion,
+    # amendments with it (which also matches the non-existent "10-K/A/A").
+    filings = company.get_filings(form=form, amendments=is_amendment_form(form))
     if not filings:
         return []
 
     latest = filings.latest(limit)
     # edgartools returns a single filing when limit == 1 and a collection otherwise.
-    items = list(latest) if hasattr(latest, "__iter__") else [latest]
-    return [map_filing(filing) for filing in items]
+    items = collection_as_list(latest)
+    originals = load_original_filings(company, form)
+    return [
+        map_filing(filing, amends_accession=resolve_amended_accession(filing, originals))
+        for filing in items
+    ]
 
 
 def get_filing_sections(ticker: str, accession: str) -> FilingSectionsResponse:
@@ -118,18 +108,15 @@ def get_filing_sections(ticker: str, accession: str) -> FilingSectionsResponse:
     if filing is None:
         raise LookupError(f"Filing accession '{accession}' was not found for '{ticker}'.")
 
-    form = str(getattr(filing, "form", "") or "")
-    if form not in SUPPORTED_SECTION_FORMS:
-        raise ValueError(f"Section extraction is supported for {sorted(SUPPORTED_SECTION_FORMS)}, not {form}.")
-
     report = filing.obj()
     sections = extract_sections(report)
     if not sections:
         raise LookupError(f"No structured sections were extracted for accession '{accession}'.")
 
+    originals = load_original_filings(company, str(getattr(filing, "form", "") or ""))
     return FilingSectionsResponse(
         company=map_company(company),
-        filing=map_filing(filing),
+        filing=map_filing(filing, amends_accession=resolve_amended_accession(filing, originals)),
         sourceUrl=str(getattr(filing, "homepage_url", None) or getattr(filing, "url", "")),
         sections=sections,
     )
@@ -146,9 +133,8 @@ def get_company(ticker_or_cik: str) -> Any:
 
 def resolve_filing(company: Any, accession: str) -> Optional[Any]:
     accession_candidates = accession_number_candidates(accession)
-    forms = ["10-K", "10-K/A", "10-Q", "10-Q/A"]
-    for form in forms:
-        filings = company.get_filings(form=form)
+    for form in sorted(SUPPORTED_FORMS):
+        filings = company.get_filings(form=form, amendments=is_amendment_form(form))
         if not filings:
             continue
         for candidate in accession_candidates:
@@ -243,8 +229,8 @@ def section_page_number(section: Any) -> Optional[int]:
     return None
 
 
-def map_company(company: Any) -> CompanyMetadata:
-    return CompanyMetadata(
+def map_company(company: Any) -> CompanyResult:
+    return CompanyResult(
         ticker=first_text(getattr(company, "ticker", None), call(getattr(company, "get_ticker", None))),
         cik=normalize_cik(getattr(company, "cik", "")),
         name=str(getattr(company, "name", "") or getattr(company, "display_name", "")),
@@ -259,18 +245,100 @@ def map_company_row(row: dict[str, Any]) -> CompanyResult:
     )
 
 
-def map_filing(filing: Any) -> FilingMetadata:
+def map_filing(filing: Any, amends_accession: Optional[str] = None) -> FilingResult:
     form = str(getattr(filing, "form", "") or "")
-    return FilingMetadata(
-        accessionNumber=str(
-            getattr(filing, "accession_number", None) or getattr(filing, "accession_no", "") or ""
-        ),
+    report_date = filing_report_date(filing)
+    return FilingResult(
+        accessionNumber=filing_accession_number(filing),
         form=form,
         filingDate=optional_text(getattr(filing, "filing_date", None)),
-        reportDate=optional_text(call_or_attr(filing, "period_of_report")),
+        reportDate=report_date,
         fiscalPeriod=infer_fiscal_period(form),
         sourceUrl=optional_text(getattr(filing, "homepage_url", None) or getattr(filing, "url", None)),
+        amendsAccessionNumber=optional_text(amends_accession) if is_amendment_form(form) else None,
     )
+
+
+def is_amendment_form(form: str) -> bool:
+    return form.strip().upper().endswith("/A")
+
+
+def original_form(form: str) -> str:
+    stripped = form.strip()
+    return stripped[:-2] if is_amendment_form(stripped) else stripped
+
+
+def load_original_filings(company: Any, form: str) -> list[Any]:
+    if not is_amendment_form(form):
+        return []
+    filings = company.get_filings(form=original_form(form), amendments=False)
+    return collection_as_list(filings)
+
+
+def resolve_amended_accession(filing: Any, originals: list[Any]) -> Optional[str]:
+    """Match an amendment to the original filing that shares its period of report.
+
+    SEC submissions do not name the accession being amended. The original 10-K / 10-Q
+    for the same report date, filed on or before the amendment, is the reliable proxy.
+    When several originals share that period, the latest eligible one is used.
+    """
+    form = str(getattr(filing, "form", "") or "")
+    if not is_amendment_form(form):
+        return None
+
+    report_date = filing_report_date(filing)
+    if not report_date:
+        return None
+
+    amendment_filed = optional_text(getattr(filing, "filing_date", None))
+    chosen_date = ""
+    chosen_accession: Optional[str] = None
+    for original in originals:
+        if filing_report_date(original) != report_date:
+            continue
+        accession = filing_accession_number(original)
+        if not accession:
+            continue
+        original_filed = optional_text(getattr(original, "filing_date", None))
+        if amendment_filed and original_filed and original_filed > amendment_filed:
+            continue
+        if chosen_accession is None or (original_filed or "") >= chosen_date:
+            chosen_date = original_filed or ""
+            chosen_accession = accession
+    return chosen_accession
+
+
+def filing_accession_number(filing: Any) -> str:
+    return str(getattr(filing, "accession_number", None) or getattr(filing, "accession_no", "") or "")
+
+
+def filing_report_date(filing: Any) -> Optional[str]:
+    # EntityFiling.report_date comes from the submissions JSON (no extra I/O).
+    # Base Filing.period_of_report may download SGML, so only use it as a fallback.
+    raw = getattr(filing, "report_date", None)
+    if raw in (None, ""):
+        raw = call_or_attr(filing, "period_of_report")
+    return normalize_report_date(raw)
+
+
+def normalize_report_date(value: Any) -> Optional[str]:
+    text = optional_text(value)
+    if not text:
+        return None
+    digits = text.replace("-", "")
+    if len(digits) == 8 and digits.isdigit():
+        return f"{digits[:4]}-{digits[4:6]}-{digits[6:]}"
+    return text
+
+
+def collection_as_list(filings: Any) -> list[Any]:
+    if not filings:
+        return []
+    if isinstance(filings, (str, bytes)):
+        return [filings]
+    if hasattr(filings, "__iter__"):
+        return list(filings)
+    return [filings]
 
 
 def infer_fiscal_period(form: str) -> Optional[str]:
@@ -331,7 +399,3 @@ def call_or_attr(obj: Any, name: str) -> Any:
     if callable(value):
         return call(value)
     return value
-
-
-def limit_range(value: int, minimum: int, maximum: int) -> int:
-    return max(minimum, min(value, maximum))

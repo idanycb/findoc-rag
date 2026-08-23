@@ -1,9 +1,9 @@
 """Route-layer integration tests.
 
 These exercise the FastAPI HTTP contract (routing, query validation, and the
-exception -> status-code mapping in app.main) with the service layer mocked out,
-so they run fast and deterministically with no network. Real SEC calls live in
-test_edgar_live.py.
+exception -> status-code mapping in app.main). Service calls that would hit
+EDGAR are mocked; paths that fail before any network call (e.g. unsupported
+form) use the real service. Live SEC coverage lives in test_edgar_live.py.
 """
 
 import pytest
@@ -11,9 +11,7 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 from app.schemas import (
-    CompanyMetadata,
     CompanyResult,
-    FilingMetadata,
     FilingResult,
     FilingSection,
     FilingSectionsResponse,
@@ -120,8 +118,8 @@ def test_company_filings_limit_out_of_range_is_422(limit):
 
 def _sections_response() -> FilingSectionsResponse:
     return FilingSectionsResponse(
-        company=CompanyMetadata(ticker="AAPL", cik="0000320193", name="Apple Inc."),
-        filing=FilingMetadata(accessionNumber="0000320193-24-000123", form="10-K"),
+        company=CompanyResult(ticker="AAPL", cik="0000320193", name="Apple Inc."),
+        filing=FilingResult(accessionNumber="0000320193-24-000123", form="10-K"),
         sourceUrl="https://www.sec.gov/example",
         sections=[FilingSection(item="Item 1", title="Business", text="Business overview")],
     )
@@ -155,17 +153,6 @@ def test_filing_sections_not_found_maps_to_404(monkeypatch):
     assert response.status_code == 404
 
 
-def test_filing_sections_unsupported_form_maps_to_422(monkeypatch):
-    def unsupported(ticker, accession):
-        raise ValueError("Section extraction is supported for [...] not 8-K.")
-
-    monkeypatch.setattr("app.main.get_filing_sections", unsupported)
-
-    response = client.get("/filings/sections", params={"ticker": "AAPL", "accession": "x"})
-
-    assert response.status_code == 422
-
-
 def test_filing_sections_service_error_maps_to_502(monkeypatch):
     def boom(ticker, accession):
         raise RuntimeError("edgar exploded")
@@ -176,3 +163,72 @@ def test_filing_sections_service_error_maps_to_502(monkeypatch):
 
     assert response.status_code == 502
     assert response.json()["detail"] == "EDGAR section extraction failed."
+
+
+# --- /companies/{ticker_or_cik}/filings unsupported-form validation ----------
+
+
+def test_company_filings_unsupported_form_maps_to_422():
+    response = client.get("/companies/AAPL/filings", params={"form": "8-K"})
+
+    assert response.status_code == 422
+    assert "8-K" in response.json()["detail"]
+
+
+def test_company_filings_10q_returns_200(monkeypatch):
+    monkeypatch.setattr(
+        "app.main.list_filings",
+        lambda ticker_or_cik, form, limit: [
+            FilingResult(accessionNumber="0000320193-24-000456", form="10-Q")
+        ],
+    )
+
+    response = client.get("/companies/AAPL/filings", params={"form": "10-Q"})
+
+    assert response.status_code == 200
+    assert response.json()[0]["form"] == "10-Q"
+    assert response.json()[0]["amendsAccessionNumber"] is None
+
+
+def test_company_filings_10ka_includes_amends_accession_number(monkeypatch):
+    monkeypatch.setattr(
+        "app.main.list_filings",
+        lambda ticker_or_cik, form, limit: [
+            FilingResult(
+                accessionNumber="0000320193-25-000010",
+                form="10-K/A",
+                amendsAccessionNumber="0000320193-24-000100",
+            )
+        ],
+    )
+
+    response = client.get("/companies/AAPL/filings", params={"form": "10-K/A"})
+
+    assert response.status_code == 200
+    body = response.json()[0]
+    assert body["form"] == "10-K/A"
+    assert body["amendsAccessionNumber"] == "0000320193-24-000100"
+
+
+def test_filing_sections_includes_amends_accession_number(monkeypatch):
+    monkeypatch.setattr(
+        "app.main.get_filing_sections",
+        lambda ticker, accession: FilingSectionsResponse(
+            company=CompanyResult(ticker="AAPL", cik="0000320193", name="Apple Inc."),
+            filing=FilingResult(
+                accessionNumber="0000320193-25-000010",
+                form="10-K/A",
+                amendsAccessionNumber="0000320193-24-000100",
+            ),
+            sourceUrl="https://www.sec.gov/example",
+            sections=[FilingSection(item="Item 1A", title="Risk Factors", text="Risk text")],
+        ),
+    )
+
+    response = client.get(
+        "/filings/sections",
+        params={"ticker": "AAPL", "accession": "0000320193-25-000010"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["filing"]["amendsAccessionNumber"] == "0000320193-24-000100"

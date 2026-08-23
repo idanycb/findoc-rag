@@ -22,6 +22,13 @@ class FilingResult(BaseModel):
     reportDate: Optional[str] = None
     fiscalPeriod: Optional[str] = None
     sourceUrl: Optional[str] = None
+    amendsAccessionNumber: Optional[str] = Field(
+        default=None,
+        description=(
+            "Accession of the original 10-K or 10-Q this filing amends, matched by period "
+            "of report. Null for non-amendments and when no original can be matched."
+        ),
+    )
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -32,19 +39,10 @@ class FilingResult(BaseModel):
                 "reportDate": "2024-09-28",
                 "fiscalPeriod": "FY",
                 "sourceUrl": "https://www.sec.gov/Archives/edgar/data/320193/000032019324000123-index.html",
+                "amendsAccessionNumber": None,
             }
         }
     )
-
-
-class FilingMetadata(FilingResult):
-    model_config = ConfigDict(extra="ignore")
-
-
-class CompanyMetadata(BaseModel):
-    ticker: Optional[str] = None
-    cik: str
-    name: str
 
 
 class FilingSection(BaseModel):
@@ -66,8 +64,8 @@ class FilingSection(BaseModel):
 
 
 class FilingSectionsResponse(BaseModel):
-    company: CompanyMetadata
-    filing: FilingMetadata
+    company: CompanyResult
+    filing: FilingResult
     sourceUrl: str
     sections: list[FilingSection]
 
@@ -82,6 +80,7 @@ class FilingSectionsResponse(BaseModel):
                     "reportDate": "2024-09-28",
                     "fiscalPeriod": "FY",
                     "sourceUrl": "https://www.sec.gov/Archives/edgar/data/320193/000032019324000123-index.html",
+                    "amendsAccessionNumber": None,
                 },
                 "sourceUrl": "https://www.sec.gov/Archives/edgar/data/320193/000032019324000123-index.html",
                 "sections": [

@@ -18,8 +18,8 @@ edgartools is Python-only and does a fair amount of network I/O, caching, and HT
 |---------------|---------|
 | `GET /health` | liveness check |
 | `GET /companies?q=&limit=` | full-text filer search (CIKs zero-padded to 10 digits) |
-| `GET /companies/{ticker_or_cik}/filings?form=&limit=` | list a filer's recent filings, newest first |
-| `GET /filings/sections?ticker=&accession=` | extract 10-K / 10-Q sections from one filing |
+| `GET /companies/{ticker_or_cik}/filings?form=&limit=` | list a filer's recent filings of one form, newest first |
+| `GET /filings/sections?ticker=&accession=` | extract 10-K / 10-Q (and amendment) sections from one filing |
 
 That's the summary. The **authoritative, always-current contract** — every param, response schema, and example — is generated from the code by FastAPI. Boot the service and open:
 
@@ -29,9 +29,10 @@ That's the summary. The **authoritative, always-current contract** — every par
 
 A few behaviours worth knowing up front, since they're contract decisions rather than obvious defaults:
 
-- Section extraction is limited to `10-K`, `10-K/A`, `10-Q`, `10-Q/A`; any other form returns `422`.
+- Listing is limited to `10-K`, `10-K/A`, `10-Q`, `10-Q/A`; any other `form` returns `422`. Each request is that exact form — listing `10-K` does not include `10-K/A`. Section extraction only resolves those same forms — an accession that is not one of them returns `404`.
 - Section labels differ by form on purpose — 10-K items are returned bare (`Item 1A`), 10-Q items keep the part qualifier (`Part II Item 1A`), because 10-Q item numbers restart per part.
 - `fiscalPeriod` is inferred: `FY` for 10-K variants, `null` otherwise.
+- Amendments (`10-K/A`, `10-Q/A`) include `amendsAccessionNumber`: the original `10-K` / `10-Q` with the same period of report, filed on or before the amendment. SEC does not store that link, so the sidecar infers it. The field is `null` on ordinary 10-K / 10-Q filings and when no original can be matched.
 - Errors: `404` (filer/filing not found or no sections extracted), `422` (bad params or unsupported form), `502` (upstream edgartools/SEC failure — detail is generic, full traceback is logged server-side).
 
 ## Configuration
@@ -77,6 +78,7 @@ Split by scope:
 ```
 tests/
   unit/         pure functions — no network, no HTTP
+    support/    shared fakes and filing factories (not collected)
   integration/  FastAPI routes via TestClient, service layer mocked
   e2e/          drives the full app against the real SEC, marked `e2e` and opt-in
 ```
@@ -93,7 +95,7 @@ Run the end-to-end tests against the real SEC when you want a full-stack check. 
 uv run --env-file .env pytest -m e2e
 ```
 
-The e2e tests are deliberately thin — they're slow and subject to SEC rate limits and data drift. The deterministic route/error-mapping coverage lives in `integration/test_routes.py`; the e2e ones only confirm the real SEC integration still holds together.
+The e2e tests are deliberately thin — they're slow and subject to SEC rate limits and data drift. Route and error-mapping coverage lives in `integration/test_routes.py`. Unit tests are split by concern under `unit/` and share doubles from `unit/support/`. The e2e ones only confirm the real SEC integration still holds together.
 
 ## Integrating into another project
 
@@ -102,6 +104,7 @@ The e2e tests are deliberately thin — they're slow and subject to SEC rate lim
 - Point `EDGAR_LOCAL_DATA_DIR` / `EDGAR_CACHE_DIR` at a persistent volume if you want caching to survive restarts; the `/tmp` defaults don't.
 - The `502` responses wrap any upstream failure, so callers should retry with backoff rather than treating them as permanent.
 - Section text is returned as-is from edgartools with per-line trailing whitespace stripped; it's plain text, not HTML.
+- Treat `amendsAccessionNumber` as best-effort. It is inferred from period of report, not an SEC-provided pointer, and will be `null` when the original cannot be matched.
 
 ## Layout
 

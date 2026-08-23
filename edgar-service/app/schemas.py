@@ -16,7 +16,7 @@ class CompanyResult(BaseModel):
 
 
 class FilingResult(BaseModel):
-    accessionNumber: str
+    accessionNumber: str = Field(min_length=1, description="Accession of this filing.")
     form: str
     filingDate: Optional[str] = None
     reportDate: Optional[str] = None
@@ -26,7 +26,8 @@ class FilingResult(BaseModel):
         default=None,
         description=(
             "Accession of the original 10-K or 10-Q this filing amends, matched by period "
-            "of report. Null for non-amendments and when no original can be matched."
+            "of report. Points at the original, not the preceding amendment. Null for "
+            "non-amendments and when no original can be matched."
         ),
     )
 
@@ -68,6 +69,13 @@ class FilingSectionsResponse(BaseModel):
     filing: FilingResult
     sourceUrl: str
     sections: list[FilingSection]
+    hasSearchableSections: bool = Field(
+        description=(
+            "True when at least one standard 10-K / 10-Q section was extracted. "
+            "False for valid filings with no analyzable narrative, such as a "
+            "certification-only 10-K/A."
+        ),
+    )
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -91,6 +99,7 @@ class FilingSectionsResponse(BaseModel):
                         "pageNumber": None,
                     }
                 ],
+                "hasSearchableSections": True,
             }
         }
     )

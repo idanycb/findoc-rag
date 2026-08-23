@@ -29,11 +29,13 @@ That's the summary. The **authoritative, always-current contract** — every par
 
 A few behaviours worth knowing up front, since they're contract decisions rather than obvious defaults:
 
-- Listing is limited to `10-K`, `10-K/A`, `10-Q`, `10-Q/A`; any other `form` returns `422`. Each request is that exact form — listing `10-K` does not include `10-K/A`. Section extraction only resolves those same forms — an accession that is not one of them returns `404`.
+- Listing is limited to `10-K`, `10-K/A`, `10-Q`, `10-Q/A`; any other `form` (including `8-K`) returns `422`. Each request is that exact form — listing `10-K` does not include `10-K/A`. Section extraction only resolves those same forms — an accession that is not one of them returns `404`.
 - Section labels differ by form on purpose — 10-K items are returned bare (`Item 1A`), 10-Q items keep the part qualifier (`Part II Item 1A`), because 10-Q item numbers restart per part.
 - `fiscalPeriod` is inferred: `FY` for 10-K variants, `null` otherwise.
-- Amendments (`10-K/A`, `10-Q/A`) include `amendsAccessionNumber`: the original `10-K` / `10-Q` with the same period of report, filed on or before the amendment. SEC does not store that link, so the sidecar infers it. The field is `null` on ordinary 10-K / 10-Q filings and when no original can be matched.
-- Errors: `404` (filer/filing not found or no sections extracted), `422` (bad params or unsupported form), `502` (upstream edgartools/SEC failure — detail is generic, full traceback is logged server-side).
+- Amendments (`10-K/A`, `10-Q/A`) include `amendsAccessionNumber`: the original `10-K` / `10-Q` with the same period of report, filed on or before the amendment. It points at that original, not the preceding amendment, so several `/A` filings can share one accession. SEC does not store that link, so the sidecar infers it. The field is `null` on ordinary 10-K / 10-Q filings and when no original can be matched.
+- A found filing with no extractable narrative (for example a certification-only 10-K/A) returns `200` with `sections: []` and `hasSearchableSections: false`. `404` means the filer or accession was not found.
+- A filing whose accession number is blank after normalisation is a `422`, not an empty `accessionNumber`.
+- Errors: `404` (filer/filing not found), `422` (bad params, unsupported form, or filing metadata that cannot be normalised), `502` (upstream edgartools/SEC failure — detail is generic, full traceback is logged server-side).
 
 ## Configuration
 
@@ -105,6 +107,7 @@ The e2e tests are deliberately thin — they're slow and subject to SEC rate lim
 - The `502` responses wrap any upstream failure, so callers should retry with backoff rather than treating them as permanent.
 - Section text is returned as-is from edgartools with per-line trailing whitespace stripped; it's plain text, not HTML.
 - Treat `amendsAccessionNumber` as best-effort. It is inferred from period of report, not an SEC-provided pointer, and will be `null` when the original cannot be matched.
+- Treat `hasSearchableSections: false` as a valid filing with no analyzable narrative, not a missing accession.
 
 ## Layout
 

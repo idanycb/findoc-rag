@@ -1,3 +1,5 @@
+import pytest
+
 from app.service import map_company_row, map_filing
 
 from .support import DEFAULT_ACCESSION, DEFAULT_SOURCE_URL, ORIGINAL_10K, FakeFiling, amendment_10k, original_10k
@@ -31,3 +33,9 @@ def test_map_filing_attaches_amends_accession_only_on_amendments():
     assert matched.amendsAccessionNumber == ORIGINAL_10K
     assert ignored.amendsAccessionNumber is None
     assert blank.amendsAccessionNumber is None
+
+
+@pytest.mark.parametrize("accession", ["", "  "])
+def test_map_filing_rejects_blank_accession(accession):
+    with pytest.raises(ValueError, match="accession number"):
+        map_filing(FakeFiling(accession=accession))

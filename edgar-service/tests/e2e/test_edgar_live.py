@@ -44,6 +44,8 @@ def test_apple_filings_and_sections_roundtrip():
     sections = client.get("/filings/sections", params={"ticker": "AAPL", "accession": accession})
 
     assert sections.status_code == 200
-    items = {section["item"] for section in sections.json()["sections"]}
+    body = sections.json()
+    assert body["hasSearchableSections"] is True
+    items = {section["item"] for section in body["sections"]}
     # Risk Factors is always present in a 10-K; edgartools may prefix a Part.
     assert any(item.endswith("Item 1A") for item in items)

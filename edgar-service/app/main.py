@@ -28,8 +28,9 @@ app = FastAPI(
 
 # Reusable error-response docs so Swagger/ReDoc show the non-2xx contract.
 UPSTREAM_ERROR = {502: {"description": "Upstream edgartools/SEC call failed; retry with backoff."}}
-NOT_FOUND = {404: {"description": "Filer or filing not found, or no sections extracted."}}
+NOT_FOUND = {404: {"description": "Filer or filing not found."}}
 UNSUPPORTED_FORM = {422: {"description": "Form type is not 10-K, 10-K/A, 10-Q, or 10-Q/A."}}
+INVALID_FILING = {422: {"description": "Filing metadata could not be normalized."}}
 
 
 @app.get("/health", summary="Liveness check", tags=["meta"])
@@ -66,7 +67,7 @@ def companies(
         "For `10-K/A` and `10-Q/A`, `amendsAccessionNumber` is the original filing "
         "with the same period of report, when one can be matched."
     ),
-    responses={**NOT_FOUND, **UNSUPPORTED_FORM, **UPSTREAM_ERROR},
+    responses={**NOT_FOUND, **UNSUPPORTED_FORM, **INVALID_FILING, **UPSTREAM_ERROR},
     tags=["companies"],
 )
 def company_filings(
@@ -96,9 +97,11 @@ def company_filings(
     description=(
         "Extracts structured sections (Item 1, Item 1A, MD&A, …) from a single filing. "
         "Supported for 10-K, 10-K/A, 10-Q, and 10-Q/A only. 10-K items are returned bare "
-        "(`Item 1A`); 10-Q items keep the part qualifier (`Part II Item 1A`)."
+        "(`Item 1A`); 10-Q items keep the part qualifier (`Part II Item 1A`). "
+        "A found filing with no extractable narrative (e.g. a certification-only 10-K/A) "
+        "returns an empty `sections` list and `hasSearchableSections: false`, not 404."
     ),
-    responses={**NOT_FOUND, **UPSTREAM_ERROR},
+    responses={**NOT_FOUND, **INVALID_FILING, **UPSTREAM_ERROR},
     tags=["filings"],
 )
 def filing_sections(
@@ -109,6 +112,8 @@ def filing_sections(
         return get_filing_sections(ticker, accession)
     except LookupError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     except Exception as exc:  # noqa: BLE001 - convert library/network errors to an API contract.
         logger.exception("Section extraction failed")
         raise HTTPException(status_code=502, detail="EDGAR section extraction failed.") from exc

@@ -1,3 +1,5 @@
+import pytest
+
 from app.schemas import FilingSection
 from app.service import extract_sections, normalize_item
 
@@ -12,6 +14,23 @@ def test_extract_sections_returns_structured_items():
         FilingSection(item="Item 1A", title="Item 1A. Risk Factors", text="Risk text"),
         FilingSection(item="Item 7", title="Item 7. MD&A", text="Management discussion"),
     ]
+
+
+@pytest.mark.parametrize(
+    "report",
+    [
+        pytest.param(FakeReport(sections={}), id="empty-sections"),
+        pytest.param(None, id="missing-report"),
+    ],
+)
+def test_extract_sections_returns_empty_when_nothing_is_extractable(report):
+    assert extract_sections(report) == []
+
+
+def test_extract_sections_skips_blank_section_text():
+    report = FakeReport(sections={"Item 1": FakeSection("1", "Business", "  \n")})
+
+    assert extract_sections(report) == []
 
 
 def test_normalize_item_drops_part_prefix_for_ten_k():

@@ -110,15 +110,13 @@ def get_filing_sections(ticker: str, accession: str) -> FilingSectionsResponse:
 
     report = filing.obj()
     sections = extract_sections(report)
-    if not sections:
-        raise LookupError(f"No structured sections were extracted for accession '{accession}'.")
-
     originals = load_original_filings(company, str(getattr(filing, "form", "") or ""))
     return FilingSectionsResponse(
         company=map_company(company),
         filing=map_filing(filing, amends_accession=resolve_amended_accession(filing, originals)),
         sourceUrl=str(getattr(filing, "homepage_url", None) or getattr(filing, "url", "")),
         sections=sections,
+        hasSearchableSections=bool(sections),
     )
 
 
@@ -248,8 +246,11 @@ def map_company_row(row: dict[str, Any]) -> CompanyResult:
 def map_filing(filing: Any, amends_accession: Optional[str] = None) -> FilingResult:
     form = str(getattr(filing, "form", "") or "")
     report_date = filing_report_date(filing)
+    accession = optional_text(filing_accession_number(filing))
+    if not accession:
+        raise ValueError("Filing is missing a usable accession number.")
     return FilingResult(
-        accessionNumber=filing_accession_number(filing),
+        accessionNumber=accession,
         form=form,
         filingDate=optional_text(getattr(filing, "filing_date", None)),
         reportDate=report_date,

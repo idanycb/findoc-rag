@@ -10,6 +10,12 @@ import java.util.UUID;
 public interface DocumentRepositoryPort {
     Document save(Document document);
 
+    InsertResult insertOrGet(Document document);
+
+    boolean claimAnalysisPublication(UUID documentId);
+
+    void releaseAnalysisPublication(UUID documentId);
+
     Optional<Document> findById(UUID id);
 
     default Document getById(UUID id) {
@@ -19,6 +25,10 @@ public interface DocumentRepositoryPort {
     }
 
     Optional<Document> findByIdAndTeamId(UUID id, UUID teamId);
+
+    Optional<Document> findByTeamIdAndAccessionNumber(UUID teamId, String accessionNumber);
+
+    List<Document> findByTeamIdAndAmendsAccessionNumber(UUID teamId, String accessionNumber);
 
     default Document getByIdForTeam(UUID id, UUID teamId) {
         return findByIdAndTeamId(id, teamId)
@@ -31,4 +41,7 @@ public interface DocumentRepositoryPort {
     long countAll();
 
     void delete(Document document);
+
+    record InsertResult(Document document, boolean inserted) {
+    }
 }

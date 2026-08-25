@@ -8,6 +8,8 @@ import com.danycb.findocAnalyzer.features.vault.domain.Document;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.UUID;
 
@@ -24,10 +26,32 @@ public class DeleteDocumentService implements DeleteDocumentUseCase {
     public void execute(UUID id, UUID teamId) {
         Document document = repository.getByIdForTeam(id, teamId);
 
+        if (!document.isAmendment() && document.getAccessionNumber() != null) {
+            repository.findByTeamIdAndAmendsAccessionNumber(teamId, document.getAccessionNumber())
+                    .forEach(amendment -> {
+                        amendment.reconcileAmendmentReference(
+                                amendment.getAmendsAccessionNumber(), null);
+                        repository.save(amendment);
+                    });
+        }
+
         repository.delete(document);
         auditLogger.documentDeleted(document);
 
         vectorIndex.deleteByDocumentId(id);
-        objectStorage.delete(id);
+        deleteStorageAfterCommit(id);
+    }
+
+    private void deleteStorageAfterCommit(UUID id) {
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            objectStorage.delete(id);
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                objectStorage.delete(id);
+            }
+        });
     }
 }

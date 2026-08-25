@@ -3,6 +3,8 @@ package com.danycb.findocAnalyzer.features.vault.adapter.in.web;
 import com.danycb.findocAnalyzer.features.identity.domain.UserRole;
 import com.danycb.findocAnalyzer.features.vault.application.dto.ImportFilingCommand;
 import com.danycb.findocAnalyzer.features.vault.application.dto.ImportFilingResult;
+import com.danycb.findocAnalyzer.features.vault.application.EdgarServiceUnavailableException;
+import com.danycb.findocAnalyzer.features.vault.application.ResourceNotFoundException;
 import com.danycb.findocAnalyzer.features.vault.application.in.ImportFilingUseCase;
 import com.danycb.findocAnalyzer.features.vault.application.in.ListFilingsUseCase;
 import com.danycb.findocAnalyzer.features.vault.application.in.SearchCompaniesUseCase;
@@ -92,7 +94,7 @@ class EdgarControllerTest {
     void listFilingsPassesCompanyIdAndType() throws Exception {
         listFilings.result = List.of(new FilingResult(
                 "0000320193-24-000123", "10-K",
-                LocalDate.of(2024, 11, 1), LocalDate.of(2024, 9, 28), "FY2024", "https://sec.example/aapl"));
+                LocalDate.of(2024, 11, 1), LocalDate.of(2024, 9, 28), "FY2024", "https://sec.example/aapl", null));
 
         mockMvc.perform(get("/api/v1/edgar/companies/320193/filings").param("type", "10-K").with(member()))
                 .andExpect(status().isOk())
@@ -100,6 +102,19 @@ class EdgarControllerTest {
 
         assertThat(listFilings.companyId).isEqualTo("320193");
         assertThat(listFilings.formType).isEqualTo("10-K");
+    }
+
+    @Test
+    void listFilingsReturnsAmendmentRelationship() throws Exception {
+        listFilings.result = List.of(new FilingResult(
+                "0000320193-25-000020", "10-K/A",
+                LocalDate.of(2025, 1, 2), LocalDate.of(2024, 9, 28), "FY",
+                "https://sec.example/amendment", "0000320193-24-000123"));
+
+        mockMvc.perform(get("/api/v1/edgar/companies/AAPL/filings").param("type", "10-K/A").with(member()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].accessionNumber").value("0000320193-25-000020"))
+                .andExpect(jsonPath("$[0].amendsAccessionNumber").value("0000320193-24-000123"));
     }
 
     @Test
@@ -111,8 +126,9 @@ class EdgarControllerTest {
                         .with(member())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"ticker":"AAPL","accessionNumber":"0000320193-24-000123","cik":"320193",
-                                 "companyName":"Apple Inc.","formType":"10-K","fiscalPeriod":"FY2024",
+                                {"ticker":"AAPL","accessionNumber":"0000320193-25-000020",
+                                 "amendsAccessionNumber":"0000320193-24-000123","cik":"320193",
+                                 "companyName":"Apple Inc.","formType":"10-K/A","fiscalPeriod":"FY2024",
                                  "reportDate":"2024-09-28","filingDate":"2024-11-01",
                                  "sourceUrl":"https://sec.example/aapl"}"""))
                 .andExpect(status().isAccepted())
@@ -120,7 +136,8 @@ class EdgarControllerTest {
                 .andExpect(jsonPath("$.status").value("PENDING"));
 
         assertThat(importFiling.teamId).isEqualTo(teamId);
-        assertThat(importFiling.command.accessionNumber()).isEqualTo("0000320193-24-000123");
+        assertThat(importFiling.command.accessionNumber()).isEqualTo("0000320193-25-000020");
+        assertThat(importFiling.command.amendsAccessionNumber()).isEqualTo("0000320193-24-000123");
     }
 
     @Test
@@ -130,6 +147,45 @@ class EdgarControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"ticker\":\"\",\"accessionNumber\":\"0000320193-24-000123\"}"))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void importFilingRejectsUnsupportedForm() throws Exception {
+        mockMvc.perform(post("/api/v1/edgar/filings/import")
+                        .with(member())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"ticker":"AAPL","accessionNumber":"0000320193-24-000123",
+                                 "formType":"8-K"}
+                                """))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void filingLookupMapsNotFoundTo404() throws Exception {
+        listFilings.error = new ResourceNotFoundException("filing not found");
+
+        mockMvc.perform(get("/api/v1/edgar/companies/AAPL/filings").param("type", "10-K").with(member()))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error").value("filing not found"));
+    }
+
+    @Test
+    void filingLookupMapsInvalidSidecarRequestTo400() throws Exception {
+        listFilings.error = new IllegalArgumentException("unsupported form");
+
+        mockMvc.perform(get("/api/v1/edgar/companies/AAPL/filings").param("type", "8-K").with(member()))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("unsupported form"));
+    }
+
+    @Test
+    void filingLookupMapsSidecarOutageTo502() throws Exception {
+        listFilings.error = new EdgarServiceUnavailableException("EDGAR temporarily unavailable");
+
+        mockMvc.perform(get("/api/v1/edgar/companies/AAPL/filings").param("type", "10-K").with(member()))
+                .andExpect(status().isBadGateway())
+                .andExpect(jsonPath("$.error").value("EDGAR temporarily unavailable"));
     }
 
     @Test
@@ -167,17 +223,22 @@ class EdgarControllerTest {
         String companyId;
         String formType;
         List<FilingResult> result = List.of();
+        RuntimeException error;
 
         void reset() {
             companyId = null;
             formType = null;
             result = List.of();
+            error = null;
         }
 
         @Override
         public List<FilingResult> list(String companyId, String formType) {
             this.companyId = companyId;
             this.formType = formType;
+            if (error != null) {
+                throw error;
+            }
             return result;
         }
     }

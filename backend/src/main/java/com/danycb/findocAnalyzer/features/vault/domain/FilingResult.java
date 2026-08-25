@@ -8,6 +8,7 @@ public record FilingResult(
         LocalDate filingDate,
         LocalDate reportDate,
         String fiscalPeriod,
-        String sourceUrl
+        String sourceUrl,
+        String amendsAccessionNumber
 ) {
 }

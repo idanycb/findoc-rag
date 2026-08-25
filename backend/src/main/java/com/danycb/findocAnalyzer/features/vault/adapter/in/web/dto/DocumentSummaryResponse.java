@@ -3,6 +3,7 @@ package com.danycb.findocAnalyzer.features.vault.adapter.in.web.dto;
 import com.danycb.findocAnalyzer.features.vault.domain.Document;
 import com.danycb.findocAnalyzer.features.vault.domain.DocumentSource;
 import com.danycb.findocAnalyzer.features.vault.domain.DocumentStatus;
+import com.danycb.findocAnalyzer.features.vault.domain.AmendmentLinkStatus;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -20,6 +21,12 @@ public record DocumentSummaryResponse(
         String ticker,
         String companyName,
         String formType,
+        String baseFormType,
+        boolean isAmendment,
+        String amendsAccessionNumber,
+        UUID amendsDocumentId,
+        AmendmentLinkStatus amendmentLinkStatus,
+        boolean searchable,
         String fiscalPeriod,
         LocalDate reportDate,
         LocalDate filingDate,
@@ -39,6 +46,12 @@ public record DocumentSummaryResponse(
                 document.getTicker(),
                 document.getCompanyName(),
                 document.getFormType(),
+                document.getBaseFormType(),
+                document.isAmendment(),
+                document.getAmendsAccessionNumber(),
+                document.getAmendsDocumentId(),
+                document.getAmendmentLinkStatus(),
+                document.isSearchable(),
                 document.getFiscalPeriod(),
                 document.getReportDate(),
                 document.getFilingDate(),

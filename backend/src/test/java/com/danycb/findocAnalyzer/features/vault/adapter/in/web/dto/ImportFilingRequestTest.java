@@ -15,6 +15,7 @@ class ImportFilingRequestTest {
         ImportFilingRequest request = new ImportFilingRequest(
                 "AAPL",
                 "0000320193-24-000123",
+                "0000320193-23-000099",
                 "320193",
                 "Apple Inc.",
                 "10-K",
@@ -27,6 +28,7 @@ class ImportFilingRequestTest {
 
         assertThat(command.ticker()).isEqualTo("AAPL");
         assertThat(command.accessionNumber()).isEqualTo("0000320193-24-000123");
+        assertThat(command.amendsAccessionNumber()).isEqualTo("0000320193-23-000099");
         assertThat(command.cik()).isEqualTo("320193");
         assertThat(command.companyName()).isEqualTo("Apple Inc.");
         assertThat(command.formType()).isEqualTo("10-K");

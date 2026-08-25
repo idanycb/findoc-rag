@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.time.LocalDate;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -116,9 +117,31 @@ class PgVectorSearchAdapterIT {
         assertThat(results).hasSize(6);
     }
 
+    @Test
+    void searchReturnsOnlyEffectiveVersionAndCarriesActualSourceAccession() throws Exception {
+        UUID team = UUID.randomUUID();
+        ingest(team, "ALPHA original risks", false, "original-accession", "10-K", "2024-11-01");
+        ingest(team, "ALPHA amended risks", true, "amendment-accession", "10-K/A", "2025-01-02");
+
+        List<RetrievedChunk> results = adapter.search("ALPHA", team);
+
+        assertThat(results).singleElement().satisfies(chunk -> {
+            assertThat(chunk.text()).isEqualTo("ALPHA amended risks");
+            assertThat(chunk.accessionNumber()).isEqualTo("amendment-accession");
+            assertThat(chunk.formType()).isEqualTo("10-K/A");
+            assertThat(chunk.filingDate()).isEqualTo(LocalDate.of(2025, 1, 2));
+            assertThat(chunk.sectionItem()).isEqualTo("Item 1A");
+        });
+    }
+
     // ---- ingestion helper -------------------------------------------------------------------
 
     private void ingest(UUID teamId, String text) throws Exception {
+        ingest(teamId, text, true, UUID.randomUUID().toString(), "10-K", "2024-11-01");
+    }
+
+    private void ingest(UUID teamId, String text, boolean effective, String accession,
+                        String formType, String filingDate) throws Exception {
         UUID docId = insertParentDocument();
         Map<String, Object> metadata = new HashMap<>();
         metadata.put("document_id", docId.toString());
@@ -128,6 +151,12 @@ class PgVectorSearchAdapterIT {
         metadata.put("chunk_index", 0);
         metadata.put("section_title", "Section");
         metadata.put("section_text", text);
+        metadata.put("section_item", "Item 1A");
+        metadata.put("accession_number", accession);
+        metadata.put("original_accession_number", "original-accession");
+        metadata.put("form_type", formType);
+        metadata.put("filing_date", filingDate);
+        metadata.put("effective", Boolean.toString(effective));
         TextSegment segment = TextSegment.from(text, new dev.langchain4j.data.document.Metadata(metadata));
         store.add(MODEL.embedAll(List.of(segment)).content().getFirst(), segment);
     }

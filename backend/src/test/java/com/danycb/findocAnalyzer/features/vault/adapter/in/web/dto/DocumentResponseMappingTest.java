@@ -3,6 +3,7 @@ package com.danycb.findocAnalyzer.features.vault.adapter.in.web.dto;
 import com.danycb.findocAnalyzer.features.vault.domain.Document;
 import com.danycb.findocAnalyzer.features.vault.domain.DocumentSource;
 import com.danycb.findocAnalyzer.features.vault.domain.DocumentStatus;
+import com.danycb.findocAnalyzer.features.vault.domain.AmendmentLinkStatus;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
@@ -29,7 +30,13 @@ class DocumentResponseMappingTest {
                 .cik("320193")
                 .ticker("AAPL")
                 .companyName("Apple Inc.")
-                .formType("10-K")
+                .formType("10-K/A")
+                .baseFormType("10-K")
+                .amendment(true)
+                .amendsAccessionNumber("0000320193-24-000123")
+                .amendsDocumentId(UUID.fromString("f50a0dac-437b-4cd5-82b7-0c65d372ce7f"))
+                .amendmentLinkStatus(AmendmentLinkStatus.LINKED)
+                .searchable(false)
                 .fiscalPeriod("FY2024")
                 .reportDate(LocalDate.of(2024, 9, 28))
                 .filingDate(LocalDate.of(2024, 11, 1))
@@ -57,7 +64,13 @@ class DocumentResponseMappingTest {
         assertThat(response.cik()).isEqualTo("320193");
         assertThat(response.ticker()).isEqualTo("AAPL");
         assertThat(response.companyName()).isEqualTo("Apple Inc.");
-        assertThat(response.formType()).isEqualTo("10-K");
+        assertThat(response.formType()).isEqualTo("10-K/A");
+        assertThat(response.baseFormType()).isEqualTo("10-K");
+        assertThat(response.isAmendment()).isTrue();
+        assertThat(response.amendsAccessionNumber()).isEqualTo("0000320193-24-000123");
+        assertThat(response.amendsDocumentId()).isEqualTo(UUID.fromString("f50a0dac-437b-4cd5-82b7-0c65d372ce7f"));
+        assertThat(response.amendmentLinkStatus()).isEqualTo(AmendmentLinkStatus.LINKED);
+        assertThat(response.searchable()).isFalse();
         assertThat(response.fiscalPeriod()).isEqualTo("FY2024");
         assertThat(response.reportDate()).isEqualTo(LocalDate.of(2024, 9, 28));
         assertThat(response.filingDate()).isEqualTo(LocalDate.of(2024, 11, 1));
@@ -81,7 +94,13 @@ class DocumentResponseMappingTest {
         assertThat(response.cik()).isEqualTo("320193");
         assertThat(response.ticker()).isEqualTo("AAPL");
         assertThat(response.companyName()).isEqualTo("Apple Inc.");
-        assertThat(response.formType()).isEqualTo("10-K");
+        assertThat(response.formType()).isEqualTo("10-K/A");
+        assertThat(response.baseFormType()).isEqualTo("10-K");
+        assertThat(response.isAmendment()).isTrue();
+        assertThat(response.amendsAccessionNumber()).isEqualTo("0000320193-24-000123");
+        assertThat(response.amendsDocumentId()).isEqualTo(UUID.fromString("f50a0dac-437b-4cd5-82b7-0c65d372ce7f"));
+        assertThat(response.amendmentLinkStatus()).isEqualTo(AmendmentLinkStatus.LINKED);
+        assertThat(response.searchable()).isFalse();
         assertThat(response.fiscalPeriod()).isEqualTo("FY2024");
         assertThat(response.reportDate()).isEqualTo(LocalDate.of(2024, 9, 28));
         assertThat(response.filingDate()).isEqualTo(LocalDate.of(2024, 11, 1));

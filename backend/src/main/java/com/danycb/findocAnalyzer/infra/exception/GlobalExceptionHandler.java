@@ -4,6 +4,7 @@ import com.danycb.findocAnalyzer.infra.exception.LimitExceededException;
 import com.danycb.findocAnalyzer.features.chat.application.AiAnalysisException;
 import com.danycb.findocAnalyzer.features.identity.application.exception.*;
 import com.danycb.findocAnalyzer.features.vault.application.ResourceNotFoundException;
+import com.danycb.findocAnalyzer.features.vault.application.EdgarServiceUnavailableException;
 import com.danycb.findocAnalyzer.infra.security.InvalidAccessTokenException;
 import com.danycb.findocAnalyzer.infra.security.UserPrincipal;
 import lombok.extern.slf4j.Slf4j;
@@ -40,6 +41,11 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(AiAnalysisException.class)
     public ResponseEntity<ErrorResponse> handleAiAnalysisException(AiAnalysisException e) {
+        return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(new ErrorResponse(e.getMessage()));
+    }
+
+    @ExceptionHandler(EdgarServiceUnavailableException.class)
+    public ResponseEntity<ErrorResponse> handleEdgarServiceUnavailable(EdgarServiceUnavailableException e) {
         return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(new ErrorResponse(e.getMessage()));
     }
 

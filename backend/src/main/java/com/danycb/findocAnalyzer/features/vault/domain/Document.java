@@ -23,11 +23,20 @@ public class Document {
     private final String ticker;
     private final String companyName;
     private final String formType;
+    private final String baseFormType;
+    @Builder.Default
+    private final boolean amendment = false;
     private final String fiscalPeriod;
-    private final LocalDate reportDate;
-    private final LocalDate filingDate;
+    private LocalDate reportDate;
+    private LocalDate filingDate;
     private final String accessionNumber;
     private final String sourceUrl;
+
+    private String amendsAccessionNumber;
+    private UUID amendsDocumentId;
+    private AmendmentLinkStatus amendmentLinkStatus;
+    @Builder.Default
+    private boolean searchable = true;
 
     private DocumentStatus status;
     private Instant lastAnalyzedAt;
@@ -55,5 +64,41 @@ public class Document {
 
     public void markPendingForReanalysis() {
         this.status = DocumentStatus.PENDING;
+    }
+
+    public void linkToOriginal(UUID originalDocumentId) {
+        this.amendsDocumentId = originalDocumentId;
+        this.amendmentLinkStatus = AmendmentLinkStatus.LINKED;
+    }
+
+    public void reconcileAmendmentReference(String originalAccessionNumber, UUID originalDocumentId) {
+        this.amendsAccessionNumber = originalAccessionNumber;
+        if (!amendment) {
+            this.amendsDocumentId = null;
+            this.amendmentLinkStatus = AmendmentLinkStatus.NOT_APPLICABLE;
+        } else if (originalDocumentId == null) {
+            this.amendsDocumentId = null;
+            this.amendmentLinkStatus = AmendmentLinkStatus.UNRESOLVED;
+        } else {
+            this.amendsDocumentId = originalDocumentId;
+            this.amendmentLinkStatus = AmendmentLinkStatus.LINKED;
+        }
+    }
+
+    public void reconcileFilingDates(LocalDate filingDate, LocalDate reportDate) {
+        if (filingDate != null) {
+            this.filingDate = filingDate;
+        }
+        if (reportDate != null) {
+            this.reportDate = reportDate;
+        }
+    }
+
+    public void updateAmendmentReference(String originalAccessionNumber) {
+        this.amendsAccessionNumber = originalAccessionNumber;
+    }
+
+    public void markSearchable(boolean searchable) {
+        this.searchable = searchable;
     }
 }

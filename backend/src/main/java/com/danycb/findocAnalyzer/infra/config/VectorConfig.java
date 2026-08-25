@@ -10,6 +10,7 @@ import org.springframework.context.annotation.Configuration;
 
 import javax.sql.DataSource;
 import java.util.Arrays;
+import com.danycb.findocAnalyzer.features.vault.adapter.out.vector.PgVectorIndexAdapter;
 
 @Configuration
 public class VectorConfig {
@@ -20,7 +21,7 @@ public class VectorConfig {
     }
 
     @Bean
-    public EmbeddingStore<TextSegment> embeddingStore(DataSource dataSource) {
+    public PgVectorIndexAdapter.AmendmentAwarePgVectorStore embeddingStore(DataSource dataSource) {
         MetadataStorageConfig metadataConfig = DefaultMetadataStorageConfig.builder()
                 .storageMode(MetadataStorageMode.COLUMN_PER_KEY)
                 .columnDefinitions(Arrays.asList(
@@ -30,16 +31,16 @@ public class VectorConfig {
                         MetadataColumDefinition.from("file_name VARCHAR(255)").getFullDefinition(),
                         MetadataColumDefinition.from("page INT").getFullDefinition(),
                         MetadataColumDefinition.from("section_text TEXT").getFullDefinition(),
-                        MetadataColumDefinition.from("section_title TEXT").getFullDefinition()
+                        MetadataColumDefinition.from("section_title TEXT").getFullDefinition(),
+                        MetadataColumDefinition.from("section_item TEXT").getFullDefinition(),
+                        MetadataColumDefinition.from("accession_number VARCHAR(64)").getFullDefinition(),
+                        MetadataColumDefinition.from("original_accession_number VARCHAR(64)").getFullDefinition(),
+                        MetadataColumDefinition.from("form_type VARCHAR(32)").getFullDefinition(),
+                        MetadataColumDefinition.from("filing_date VARCHAR(10)").getFullDefinition(),
+                        MetadataColumDefinition.from("effective VARCHAR(5)").getFullDefinition()
                 ))
                 .build();
 
-        return PgVectorEmbeddingStore.datasourceBuilder()
-                .datasource(dataSource)
-                .table("document_embeddings")
-                .dimension(384)
-                .metadataStorageConfig(metadataConfig)
-                .createTable(false)
-                .build();
+        return new PgVectorIndexAdapter.AmendmentAwarePgVectorStore(dataSource, metadataConfig);
     }
 }

@@ -2,6 +2,8 @@ package com.danycb.findocAnalyzer.features.chat.adapter.in.web;
 
 import com.danycb.findocAnalyzer.features.chat.application.AiAnalysisException;
 import com.danycb.findocAnalyzer.features.chat.application.in.AnswerQuestionUseCase;
+import com.danycb.findocAnalyzer.features.chat.application.dto.AnswerResult;
+import com.danycb.findocAnalyzer.features.chat.domain.Citation;
 import com.danycb.findocAnalyzer.features.identity.domain.UserRole;
 import com.danycb.findocAnalyzer.infra.security.UserPrincipal;
 import org.junit.jupiter.api.BeforeEach;
@@ -23,6 +25,7 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
 import java.util.List;
 import java.util.UUID;
+import java.time.LocalDate;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
@@ -59,14 +62,19 @@ class ChatControllerTest {
 
     @Test
     void answersQuestionForTeam() throws Exception {
-        answerQuestion.answer = "Revenue grew 8%.";
+        answerQuestion.result = new AnswerResult("Revenue grew 8%.", List.of(new Citation(
+                "0000320193-25-000020", "10-Q/A", LocalDate.of(2025, 5, 2),
+                "Part I Item 2", "Management's Discussion and Analysis", 7, "Revenue grew.")));
 
         mockMvc.perform(post("/api/v1/chat")
                         .with(member(teamId))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"question\":\"How did revenue change?\"}"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.answer").value("Revenue grew 8%."));
+                .andExpect(jsonPath("$.answer").value("Revenue grew 8%."))
+                .andExpect(jsonPath("$.citations[0].accessionNumber").value("0000320193-25-000020"))
+                .andExpect(jsonPath("$.citations[0].formType").value("10-Q/A"))
+                .andExpect(jsonPath("$.citations[0].sectionItem").value("Part I Item 2"));
 
         assertThat(answerQuestion.question).isEqualTo("How did revenue change?");
         assertThat(answerQuestion.teamId).isEqualTo(teamId);
@@ -106,24 +114,24 @@ class ChatControllerTest {
     static class RecordingAnswerQuestion implements AnswerQuestionUseCase {
         String question;
         UUID teamId;
-        String answer = "";
+        AnswerResult result = new AnswerResult("", List.of());
         RuntimeException error;
 
         void reset() {
             question = null;
             teamId = null;
-            answer = "";
+            result = new AnswerResult("", List.of());
             error = null;
         }
 
         @Override
-        public String execute(String question, UUID teamId) {
+        public AnswerResult execute(String question, UUID teamId) {
             this.question = question;
             this.teamId = teamId;
             if (error != null) {
                 throw error;
             }
-            return answer;
+            return result;
         }
     }
 

@@ -3,6 +3,7 @@ package com.danycb.findocAnalyzer.features.vault.application;
 import com.danycb.findocAnalyzer.features.vault.application.in.ListFilingsUseCase;
 import com.danycb.findocAnalyzer.features.vault.application.out.FilingCatalogPort;
 import com.danycb.findocAnalyzer.features.vault.domain.FilingResult;
+import com.danycb.findocAnalyzer.features.vault.domain.EdgarFormType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -15,6 +16,7 @@ public class ListFilingsService implements ListFilingsUseCase {
 
     @Override
     public List<FilingResult> list(String companyId, String formType) {
-        return filingCatalog.listFilings(companyId, formType);
+        EdgarFormType supportedForm = EdgarFormType.parse(formType);
+        return filingCatalog.listFilings(companyId, supportedForm.value());
     }
 }

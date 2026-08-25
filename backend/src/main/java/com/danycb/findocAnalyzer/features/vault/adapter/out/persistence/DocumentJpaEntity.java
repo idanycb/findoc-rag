@@ -2,6 +2,7 @@ package com.danycb.findocAnalyzer.features.vault.adapter.out.persistence;
 
 import com.danycb.findocAnalyzer.features.vault.domain.DocumentSource;
 import com.danycb.findocAnalyzer.features.vault.domain.DocumentStatus;
+import com.danycb.findocAnalyzer.features.vault.domain.AmendmentLinkStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -50,6 +51,22 @@ public class DocumentJpaEntity {
     private String companyName;
 
     private String formType;
+
+    private String baseFormType;
+
+    @Column(name = "is_amendment", nullable = false)
+    private boolean amendment;
+
+    private String amendsAccessionNumber;
+
+    private UUID amendsDocumentId;
+
+    @Enumerated(EnumType.STRING)
+    private AmendmentLinkStatus amendmentLinkStatus;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean searchable = true;
 
     private String fiscalPeriod;
 

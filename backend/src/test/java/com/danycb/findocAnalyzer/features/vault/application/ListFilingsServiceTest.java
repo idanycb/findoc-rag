@@ -9,6 +9,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class ListFilingsServiceTest {
     private final RecordingFilingCatalog filingCatalog = new RecordingFilingCatalog();
@@ -26,7 +27,24 @@ class ListFilingsServiceTest {
                 LocalDate.of(2024, 11, 1),
                 LocalDate.of(2024, 9, 28),
                 "FY2024",
-                "https://sec.example/aapl"));
+                "https://sec.example/aapl",
+                null));
+    }
+
+    @Test
+    void listPreservesExactAmendmentForm() {
+        service.list("AAPL", "10-K/A");
+
+        assertThat(filingCatalog.receivedFormType).isEqualTo("10-K/A");
+    }
+
+    @Test
+    void listRejectsUnsupportedFormBeforeCallingSidecar() {
+        assertThatThrownBy(() -> service.list("AAPL", "8-K"))
+                .isInstanceOf(IllegalArgumentException.class);
+
+        assertThat(filingCatalog.receivedCompanyId).isNull();
+        assertThat(filingCatalog.receivedFormType).isNull();
     }
 
     static class RecordingFilingCatalog implements FilingCatalogPort {
@@ -48,7 +66,8 @@ class ListFilingsServiceTest {
                     LocalDate.of(2024, 11, 1),
                     LocalDate.of(2024, 9, 28),
                     "FY2024",
-                    "https://sec.example/aapl"));
+                    "https://sec.example/aapl",
+                    null));
         }
     }
 }

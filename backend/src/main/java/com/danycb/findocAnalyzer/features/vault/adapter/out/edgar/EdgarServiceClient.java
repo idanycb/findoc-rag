@@ -9,6 +9,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientResponseException;
+import org.springframework.web.client.ResourceAccessException;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -23,13 +25,20 @@ public class EdgarServiceClient implements FilingCatalogPort {
 
     @Override
     public List<CompanyResult> searchCompanies(String query) {
-        List<CompanyResponse> companies = restClient.get()
-                .uri(uriBuilder -> uriBuilder.path("/companies")
-                        .queryParam("q", query)
-                        .build())
-                .retrieve()
-                .body(new ParameterizedTypeReference<>() {
-                });
+        List<CompanyResponse> companies;
+        try {
+            companies = restClient.get()
+                    .uri(uriBuilder -> uriBuilder.path("/companies")
+                            .queryParam("q", query)
+                            .build())
+                    .retrieve()
+                    .body(new ParameterizedTypeReference<>() {
+                    });
+        } catch (RestClientResponseException failure) {
+            throw EdgarErrorTranslator.translate(failure);
+        } catch (ResourceAccessException failure) {
+            throw EdgarErrorTranslator.unavailable(failure);
+        }
         if (companies == null) {
             return List.of();
         }
@@ -40,25 +49,40 @@ public class EdgarServiceClient implements FilingCatalogPort {
 
     @Override
     public List<FilingResult> listFilings(String companyId, String formType) {
-        List<FilingResponse> filings = restClient.get()
-                .uri(uriBuilder -> uriBuilder.path("/companies/{id}/filings")
-                        .queryParam("form", formType)
-                        .build(companyId))
-                .retrieve()
-                .body(new ParameterizedTypeReference<>() {
-                });
+        List<FilingResponse> filings;
+        try {
+            filings = restClient.get()
+                    .uri(uriBuilder -> uriBuilder.path("/companies/{id}/filings")
+                            .queryParam("form", formType)
+                            .build(companyId))
+                    .retrieve()
+                    .body(new ParameterizedTypeReference<>() {
+                    });
+        } catch (RestClientResponseException failure) {
+            throw EdgarErrorTranslator.translate(failure);
+        } catch (ResourceAccessException failure) {
+            throw EdgarErrorTranslator.unavailable(failure);
+        }
         if (filings == null) {
             return List.of();
         }
         return filings.stream()
                 .map(filing -> new FilingResult(
-                        filing.accessionNumber(),
+                        requireAccession(filing.accessionNumber()),
                         filing.form(),
                         filing.filingDate(),
                         filing.reportDate(),
                         filing.fiscalPeriod(),
-                        filing.sourceUrl()))
+                        filing.sourceUrl(),
+                        filing.amendsAccessionNumber()))
                 .toList();
+    }
+
+    private String requireAccession(String accessionNumber) {
+        if (accessionNumber == null || accessionNumber.isBlank()) {
+            throw new IllegalStateException("EDGAR sidecar returned a blank accession number");
+        }
+        return accessionNumber;
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
@@ -72,7 +96,8 @@ public class EdgarServiceClient implements FilingCatalogPort {
             @JsonProperty("filingDate") LocalDate filingDate,
             @JsonProperty("reportDate") LocalDate reportDate,
             @JsonProperty("fiscalPeriod") String fiscalPeriod,
-            @JsonProperty("sourceUrl") String sourceUrl
+            @JsonProperty("sourceUrl") String sourceUrl,
+            @JsonProperty("amendsAccessionNumber") String amendsAccessionNumber
     ) {
     }
 }

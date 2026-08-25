@@ -7,6 +7,7 @@ import java.time.LocalDate;
 public record ImportFilingCommand(
         @NotBlank String ticker,
         @NotBlank String accessionNumber,
+        String amendsAccessionNumber,
         String cik,
         String companyName,
         String formType,

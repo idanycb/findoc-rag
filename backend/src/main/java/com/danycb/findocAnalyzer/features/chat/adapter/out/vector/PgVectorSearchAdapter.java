@@ -12,6 +12,7 @@ import dev.langchain4j.store.embedding.filter.Filter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDate;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.UUID;
@@ -31,7 +32,8 @@ public class PgVectorSearchAdapter implements VectorSearchPort {
 
     @Override
     public List<RetrievedChunk> search(String query, UUID teamId) {
-        Filter teamFilter = metadataKey("team_id").isEqualTo(teamId.toString());
+        Filter teamFilter = metadataKey("team_id").isEqualTo(teamId.toString())
+                .and(metadataKey("effective").isEqualTo("true"));
 
         EmbeddingSearchResult<TextSegment> result = embeddingStore.search(
                 EmbeddingSearchRequest.builder()
@@ -54,13 +56,20 @@ public class PgVectorSearchAdapter implements VectorSearchPort {
 
     private RetrievedChunk toRetrievedChunk(EmbeddingMatch<TextSegment> match) {
         TextSegment segment = match.embedded();
-        String sectionText = segment.metadata().getString("section_text");
         return new RetrievedChunk(
                 match.embeddingId(),
                 segment.metadata().getString("file_name"),
                 segment.metadata().getString("section_title"),
                 segment.metadata().getInteger("page"),
-                sectionText != null ? sectionText : segment.text()
+                segment.text(),
+                segment.metadata().getString("accession_number"),
+                segment.metadata().getString("form_type"),
+                parseDate(segment.metadata().getString("filing_date")),
+                segment.metadata().getString("section_item")
         );
+    }
+
+    private LocalDate parseDate(String value) {
+        return value == null || value.isBlank() ? null : LocalDate.parse(value);
     }
 }

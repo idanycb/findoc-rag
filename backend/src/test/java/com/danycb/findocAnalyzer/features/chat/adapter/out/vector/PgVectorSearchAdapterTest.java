@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Test;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.time.LocalDate;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -43,7 +44,11 @@ class PgVectorSearchAdapterTest {
             assertThat(chunk.fileName()).isEqualTo("10k.pdf");
             assertThat(chunk.title()).isEqualTo("Item 1. Business");
             assertThat(chunk.page()).isEqualTo(3);
-            assertThat(chunk.text()).isEqualTo("The full section text.");
+            assertThat(chunk.text()).isEqualTo("chunk text");
+            assertThat(chunk.accessionNumber()).isEqualTo("0000320193-25-000020");
+            assertThat(chunk.formType()).isEqualTo("10-K/A");
+            assertThat(chunk.filingDate()).isEqualTo(LocalDate.of(2025, 1, 2));
+            assertThat(chunk.sectionItem()).isEqualTo("Item 1");
         });
     }
 
@@ -60,8 +65,8 @@ class PgVectorSearchAdapterTest {
     @Test
     void deduplicatesChunksWithIdenticalText() {
         embeddingStore.result = matches(
-                match("id-1", "A", 1, "same body", "seg-a"),
-                match("id-2", "B", 2, "same body", "seg-b"));
+                match("id-1", "A", 1, "full A", "same body"),
+                match("id-2", "B", 2, "full B", "same body"));
 
         List<RetrievedChunk> chunks = adapter.search("q", teamId);
 
@@ -120,7 +125,12 @@ class PgVectorSearchAdapterTest {
         Metadata metadata = new Metadata();
         metadata.put("file_name", "10k.pdf");
         metadata.put("section_title", title);
+        metadata.put("section_item", "Item 1");
         metadata.put("page", page);
+        metadata.put("accession_number", "0000320193-25-000020");
+        metadata.put("form_type", "10-K/A");
+        metadata.put("filing_date", "2025-01-02");
+        metadata.put("effective", "true");
         if (sectionText != null) {
             metadata.put("section_text", sectionText);
         }

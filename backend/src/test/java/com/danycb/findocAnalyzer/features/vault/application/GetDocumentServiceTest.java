@@ -37,6 +37,9 @@ class GetDocumentServiceTest {
     }
 
     static class FakeDocumentRepository implements DocumentRepositoryPort {
+        @Override public InsertResult insertOrGet(Document document) { return new InsertResult(save(document), true); }
+        @Override public boolean claimAnalysisPublication(UUID documentId) { return true; }
+        @Override public void releaseAnalysisPublication(UUID documentId) { }
         final Map<UUID, Document> store = new LinkedHashMap<>();
         UUID lastLookupId;
         UUID lastLookupTeamId;
@@ -71,6 +74,13 @@ class GetDocumentServiceTest {
             lastLookupId = id;
             lastLookupTeamId = teamId;
             return Optional.ofNullable(store.get(id)).filter(d -> teamId.equals(d.getTeamId()));
+        }
+
+        @Override public Optional<Document> findByTeamIdAndAccessionNumber(UUID teamId, String accession) {
+            return Optional.empty();
+        }
+        @Override public List<Document> findByTeamIdAndAmendsAccessionNumber(UUID teamId, String accession) {
+            return List.of();
         }
 
         @Override

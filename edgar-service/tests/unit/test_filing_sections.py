@@ -1,6 +1,6 @@
 import pytest
 
-from app.service import get_filing_sections
+from app.service import EdgarResourceNotFoundError, get_filing_sections
 
 from .support import (
     AMENDMENT_10K,
@@ -54,10 +54,10 @@ def test_get_filing_sections_unmatched_amendment_has_null_original(monkeypatch):
     assert result.hasSearchableSections is True
 
 
-def test_get_filing_sections_unknown_accession_is_lookup_error(monkeypatch):
+def test_get_filing_sections_unknown_accession_is_not_found_error(monkeypatch):
     patch_company(monkeypatch, {})
 
-    with pytest.raises(LookupError, match="was not found"):
+    with pytest.raises(EdgarResourceNotFoundError, match="was not found"):
         get_filing_sections("AAPL", "0000000000-00-000000")
 
 

@@ -14,6 +14,11 @@ logger = logging.getLogger(__name__)
 
 SUPPORTED_FORMS = {"10-K", "10-K/A", "10-Q", "10-Q/A"}
 
+
+class EdgarResourceNotFoundError(Exception):
+    """Raised when an EDGAR company or filing cannot be found."""
+
+
 TEN_K_SECTION_TITLES = {
     "Item 1": "Business",
     "Item 1A": "Risk Factors",
@@ -106,7 +111,9 @@ def get_filing_sections(ticker: str, accession: str) -> FilingSectionsResponse:
     company = get_company(ticker)
     filing = resolve_filing(company, accession)
     if filing is None:
-        raise LookupError(f"Filing accession '{accession}' was not found for '{ticker}'.")
+        raise EdgarResourceNotFoundError(
+            f"Filing accession '{accession}' was not found for '{ticker}'."
+        )
 
     report = filing.obj()
     sections = extract_sections(report)
@@ -125,7 +132,7 @@ def get_company(ticker_or_cik: str) -> Any:
 
     company = Company(ticker_or_cik)
     if getattr(company, "not_found", False):
-        raise LookupError(f"Company '{ticker_or_cik}' was not found.")
+        raise EdgarResourceNotFoundError(f"Company '{ticker_or_cik}' was not found.")
     return company
 
 
@@ -352,12 +359,11 @@ def infer_fiscal_period(form: str) -> Optional[str]:
 def accession_number_candidates(accession: str) -> list[str]:
     normalized = accession.strip()
     stripped = normalized.replace("-", "")
-    candidates = [normalized]
     if len(stripped) == 18 and stripped.isdigit():
-        dashed = f"{stripped[:10]}-{stripped[10:12]}-{stripped[12:]}"
-        candidates.append(dashed)
-        candidates.append(stripped)
-    return list(dict.fromkeys(candidates))
+        # edgartools treats digit-only strings as collection indexes. Always pass a
+        # dashed accession so a dashless request cannot become an out-of-range lookup.
+        return [f"{stripped[:10]}-{stripped[10:12]}-{stripped[12:]}"]
+    return [normalized]
 
 
 def clean_text(value: Any) -> str:

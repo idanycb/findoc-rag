@@ -81,6 +81,5 @@ def test_normalize_cik_preserves_empty_and_pads_numeric_values():
 
 def test_accession_number_candidates_accepts_dashless_values():
     assert accession_number_candidates("000032019324000123") == [
-        "000032019324000123",
         "0000320193-24-000123",
     ]

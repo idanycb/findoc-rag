@@ -47,6 +47,8 @@ class FakeFilings:
         return latest[0] if limit == 1 else latest
 
     def get(self, accession):
+        if accession.isdigit():
+            raise IndexError("index out of bounds")
         for filing in self._filings:
             if accession in {filing.accession_number, filing.accession_no}:
                 return filing

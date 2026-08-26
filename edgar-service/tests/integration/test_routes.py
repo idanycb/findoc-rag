@@ -16,6 +16,7 @@ from app.schemas import (
     FilingSection,
     FilingSectionsResponse,
 )
+from app.service import EdgarResourceNotFoundError
 from tests.unit.support import AMENDMENT_10K, DEFAULT_ACCESSION, ORIGINAL_10K
 
 client = TestClient(app)
@@ -118,7 +119,7 @@ def test_company_filings_10ka_includes_amends_accession_number(monkeypatch):
 
 def test_company_filings_not_found_maps_to_404(monkeypatch):
     def missing(ticker_or_cik, form, limit):
-        raise LookupError("Company 'ZZZZ' was not found.")
+        raise EdgarResourceNotFoundError("Company 'ZZZZ' was not found.")
 
     monkeypatch.setattr("app.main.list_filings", missing)
 
@@ -229,13 +230,28 @@ def test_filing_sections_missing_params_is_422():
 
 def test_filing_sections_not_found_maps_to_404(monkeypatch):
     def missing(ticker, accession):
-        raise LookupError("Filing accession 'x' was not found for 'AAPL'.")
+        raise EdgarResourceNotFoundError("Filing accession 'x' was not found for 'AAPL'.")
 
     monkeypatch.setattr("app.main.get_filing_sections", missing)
 
     response = client.get("/filings/sections", params={"ticker": "AAPL", "accession": "x"})
 
     assert response.status_code == 404
+
+
+def test_filing_sections_internal_index_error_maps_to_502(monkeypatch):
+    def broken_lookup(ticker, accession):
+        raise IndexError("index out of bounds")
+
+    monkeypatch.setattr("app.main.get_filing_sections", broken_lookup)
+
+    response = client.get(
+        "/filings/sections",
+        params={"ticker": "AAPL", "accession": "000032019324000123"},
+    )
+
+    assert response.status_code == 502
+    assert response.json()["detail"] == "EDGAR section extraction failed."
 
 
 def test_filing_sections_normalization_error_maps_to_422(monkeypatch):

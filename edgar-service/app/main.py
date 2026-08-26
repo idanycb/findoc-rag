@@ -4,6 +4,7 @@ from fastapi import FastAPI, HTTPException, Query
 
 from .schemas import CompanyResult, FilingResult, FilingSectionsResponse
 from .service import (
+    EdgarResourceNotFoundError,
     configure_edgar,
     get_filing_sections,
     list_filings,
@@ -81,7 +82,7 @@ def company_filings(
 ) -> list[FilingResult]:
     try:
         return list_filings(ticker_or_cik, form=form, limit=limit)
-    except LookupError as exc:
+    except EdgarResourceNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
@@ -110,7 +111,7 @@ def filing_sections(
 ) -> FilingSectionsResponse:
     try:
         return get_filing_sections(ticker, accession)
-    except LookupError as exc:
+    except EdgarResourceNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc

@@ -9,7 +9,7 @@ export default function Error({
 }) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#EBEBEB] px-6">
-      <div className="w-full max-w-[420px] rounded-2xl bg-white p-7 text-center shadow-[0_2px_16px_rgba(0,0,0,.07)]">
+      <div className="w-full max-w-105 rounded-2xl bg-white p-7 text-center shadow-[0_2px_16px_rgba(0,0,0,.07)]">
         <h1 className="text-xl font-bold tracking-[-.01em] text-[#111111]">
           Something went wrong
         </h1>

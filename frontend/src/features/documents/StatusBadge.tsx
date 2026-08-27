@@ -14,7 +14,7 @@ export function StatusBadge({ status }: { status: DocumentStatus }) {
   const cfg = STATUS_CONFIG[status] ?? STATUS_CONFIG.PENDING;
   return (
     <span
-      className="inline-flex items-center rounded-full px-[10px] py-1 text-[10.5px] font-bold tracking-[.05em]"
+      className="inline-flex items-center rounded-full px-2.5 py-1 text-[10.5px] font-bold tracking-[.05em]"
       style={{ color: cfg.text, background: cfg.bg, border: cfg.border ? `1px solid ${cfg.border}` : undefined }}
     >
       {cfg.label}

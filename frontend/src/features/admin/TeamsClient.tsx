@@ -111,13 +111,13 @@ export function TeamsClient() {
       <div className="flex items-center justify-between bg-white px-5 py-4 border-b border-[#EBEBEB] md:px-7 md:py-5">
         <div>
           <h1 className="text-[22px] font-bold text-[#111111] tracking-[-.01em]">Teams</h1>
-          <p className="text-[11px] uppercase tracking-[.12em] text-[#AAAAAA] mt-[2px]">
+          <p className="text-[11px] uppercase tracking-[.12em] text-[#AAAAAA] mt-0.5">
             Every member and document belongs to a team.
           </p>
         </div>
         <button
           onClick={() => { setShowCreate(true); setCreateError(''); }}
-          className="flex items-center gap-2 bg-[#111111] text-white font-semibold text-[13.5px] px-4 h-[38px] rounded-lg hover:bg-[#333333] transition-colors"
+          className="flex items-center gap-2 bg-[#111111] text-white font-semibold text-[13.5px] px-4 h-9.5 rounded-lg hover:bg-[#333333] transition-colors"
         >
           <Plus size={16} strokeWidth={2.2} />
           New team
@@ -133,7 +133,7 @@ export function TeamsClient() {
 
         {/* Create inline form */}
         {showCreate && (
-          <div className="flex flex-col gap-3 bg-white rounded-[12px] px-[18px] py-4 shadow-[0_1px_4px_rgba(0,0,0,.06)] sm:flex-row sm:items-center">
+          <div className="flex flex-col gap-3 bg-white rounded-xl px-4.5 py-4 shadow-[0_1px_4px_rgba(0,0,0,.06)] sm:flex-row sm:items-center">
             <span className="text-[13px] font-semibold text-[#888888] whitespace-nowrap">
               Create team
             </span>
@@ -146,7 +146,7 @@ export function TeamsClient() {
                 if (e.key === 'Escape') setShowCreate(false);
               }}
               placeholder="Team name…"
-              className="flex-1 bg-[#F7F7F7] border border-[#E8E8E8] rounded-lg px-[13px] h-10 text-sm text-[#111111] placeholder:text-[#BBBBBB] outline-none focus:border-[#111111]"
+              className="flex-1 bg-[#F7F7F7] border border-[#E8E8E8] rounded-lg px-3.25 h-10 text-sm text-[#111111] placeholder:text-[#BBBBBB] outline-hidden focus:border-[#111111]"
             />
             {createError && (
               <span className="text-[12px] text-[#B91C1C]">{createError}</span>
@@ -177,7 +177,7 @@ export function TeamsClient() {
           <>
             {/* Desktop table */}
             <div className="hidden sm:block bg-white rounded-[14px] overflow-hidden shadow-[0_1px_4px_rgba(0,0,0,.06)]">
-              <div className="grid grid-cols-[1fr_100px_200px_120px] px-5 py-[13px] border-b border-[#F5F5F5] text-[11px] font-bold uppercase text-[#AAAAAA] tracking-[.1em]">
+              <div className="grid grid-cols-[1fr_100px_200px_120px] px-5 py-3.25 border-b border-[#F5F5F5] text-[11px] font-bold uppercase text-[#AAAAAA] tracking-widest">
                 <span>TEAM NAME</span>
                 <span>MEMBERS</span>
                 <span>CREATED</span>
@@ -205,7 +205,7 @@ export function TeamsClient() {
                               if (e.key === 'Enter') handleRename(team.id);
                               if (e.key === 'Escape') setEditId(null);
                             }}
-                            className="flex-1 bg-transparent text-[14px] text-[#111111] outline-none border-b border-[#111111]"
+                            className="flex-1 bg-transparent text-[14px] text-[#111111] outline-hidden border-b border-[#111111]"
                           />
                           {editError && (
                             <span className="text-[12px] text-[#B91C1C]">{editError}</span>
@@ -261,7 +261,7 @@ export function TeamsClient() {
               {teams.map((team) => (
                 <div
                   key={team.id}
-                  className="bg-white rounded-[14px] p-[15px] shadow-[0_1px_3px_rgba(0,0,0,.06)]"
+                  className="bg-white rounded-[14px] p-3.75 shadow-[0_1px_3px_rgba(0,0,0,.06)]"
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -270,7 +270,7 @@ export function TeamsClient() {
                       </div>
                       <div>
                         <div className="text-[14.5px] font-semibold text-[#111111]">{team.name}</div>
-                        <div className="text-xs text-[#AAAAAA] mt-[2px]">
+                        <div className="text-xs text-[#AAAAAA] mt-0.5">
                           {memberCount(team.id)} members · {formatDate(team.createdAt)}
                         </div>
                       </div>
@@ -295,7 +295,7 @@ export function TeamsClient() {
             </div>
           </>
         )}
-        <div className="flex items-center gap-[9px] rounded-[9px] border border-[#FECACA] bg-[#FEF3F2] px-[14px] py-[11px]">
+        <div className="flex items-center gap-2.25 rounded-[9px] border border-[#FECACA] bg-[#FEF3F2] px-3.5 py-2.75">
           <Trash2 size={14} className="flex-none text-[#DC2626]" />
           <div className="text-[12.5px] text-[#991B1B]">
             Teams with members cannot be deleted. Reassign or remove all members before deleting a team.

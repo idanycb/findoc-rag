@@ -7,7 +7,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <div className="hidden md:flex">
         <AppSidebar />
       </div>
-      <main className="flex-1 min-w-0 flex flex-col pb-[70px] md:pb-0">{children}</main>
+      <main className="flex-1 min-w-0 flex flex-col pb-17.5 md:pb-0">{children}</main>
       <MobileNav />
     </div>
   );

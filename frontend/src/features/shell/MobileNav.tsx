@@ -16,7 +16,7 @@ function MobileNavItem({ href, icon, label, active }: MobileNavItemProps) {
   return (
     <Link
       href={href}
-      className={`flex flex-col items-center gap-[5px] flex-1 py-2 text-[10.5px] font-semibold transition-colors ${
+      className={`flex flex-col items-center gap-1.25 flex-1 py-2 text-[10.5px] font-semibold transition-colors ${
         active ? 'text-[#111111]' : 'text-[#BBBBBB]'
       }`}
     >
@@ -36,7 +36,7 @@ export function MobileNav() {
   const isAdmin = claims.role === 'ADMIN';
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-[#F0F0F0] flex items-stretch z-50 md:hidden pt-[10px] pb-[14px]">
+    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-[#F0F0F0] flex items-stretch z-50 md:hidden pt-2.5 pb-3.5">
       {isSuperAdmin ? (
         <>
           <MobileNavItem

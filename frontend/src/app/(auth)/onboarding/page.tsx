@@ -42,9 +42,9 @@ export default function OnboardingPage() {
 
   return (
     <div className="min-h-screen bg-[#EBEBEB] flex items-center justify-center px-6 py-12">
-      <div className="w-full max-w-[480px]">
-        <div className="mb-8 flex items-center justify-center gap-[11px]">
-          <div className="flex h-[38px] w-[38px] items-center justify-center rounded-[11px] bg-[#111111]">
+      <div className="w-full max-w-120">
+        <div className="mb-8 flex items-center justify-center gap-2.75">
+          <div className="flex h-9.5 w-9.5 items-center justify-center rounded-[11px] bg-[#111111]">
             <FileText size={20} className="text-white" strokeWidth={2.2} />
           </div>
           <span className="text-base font-bold text-[#111111]">FinDoc Analyzer</span>

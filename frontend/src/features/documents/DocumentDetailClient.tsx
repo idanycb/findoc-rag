@@ -161,7 +161,7 @@ export function DocumentDetailClient({ id }: { id: string }) {
       <div className="flex items-center gap-4 bg-white px-5 py-4 border-b border-[#EBEBEB] md:px-7">
         <Link
           href="/vault"
-          className="w-[34px] h-[34px] rounded-lg border border-[#E5E5E5] bg-white flex items-center justify-center flex-none hover:bg-[#F5F5F5] transition-colors"
+          className="w-8.5 h-8.5 rounded-lg border border-[#E5E5E5] bg-white flex items-center justify-center flex-none hover:bg-[#F5F5F5] transition-colors"
         >
           <ChevronLeft size={17} className="text-[#666666]" />
         </Link>
@@ -176,10 +176,10 @@ export function DocumentDetailClient({ id }: { id: string }) {
             )}
           </div>
         </div>
-        <div className="hidden sm:flex items-center gap-[10px]">
+        <div className="hidden sm:flex items-center gap-2.5">
           <button
             onClick={handleView}
-            className="flex items-center gap-[7px] border border-[#E5E5E5] bg-white text-[#333333] text-[13.5px] font-medium px-[14px] h-9 rounded-lg hover:bg-[#F5F5F5] transition-colors"
+            className="flex items-center gap-1.75 border border-[#E5E5E5] bg-white text-[#333333] text-[13.5px] font-medium px-3.5 h-9 rounded-lg hover:bg-[#F5F5F5] transition-colors"
           >
             <Eye size={15} />
             {viewLabel}
@@ -187,14 +187,14 @@ export function DocumentDetailClient({ id }: { id: string }) {
           <button
             onClick={handleAnalyze}
             disabled={analyzing || !canAnalyze}
-            className="flex items-center gap-[7px] border border-[#E5E5E5] bg-white text-[#333333] text-[13.5px] font-medium px-[14px] h-9 rounded-lg hover:bg-[#F5F5F5] transition-colors disabled:opacity-60"
+            className="flex items-center gap-1.75 border border-[#E5E5E5] bg-white text-[#333333] text-[13.5px] font-medium px-3.5 h-9 rounded-lg hover:bg-[#F5F5F5] transition-colors disabled:opacity-60"
           >
             <RotateCcw size={15} />
             {analyzeLabel}
           </button>
           <button
             onClick={handleDelete}
-            className="flex items-center gap-[7px] border border-[#FECACA] bg-[#FEF2F2] text-[#B91C1C] text-[13.5px] font-medium px-[14px] h-9 rounded-lg hover:bg-[#FEE2E2] transition-colors"
+            className="flex items-center gap-1.75 border border-[#FECACA] bg-[#FEF2F2] text-[#B91C1C] text-[13.5px] font-medium px-3.5 h-9 rounded-lg hover:bg-[#FEE2E2] transition-colors"
           >
             <Trash2 size={15} />
             Delete
@@ -214,7 +214,7 @@ export function DocumentDetailClient({ id }: { id: string }) {
         <div className="flex-1 min-w-0 flex flex-col gap-4">
           <div className="rounded-[14px] bg-white px-6 py-5 shadow-[0_1px_4px_rgba(0,0,0,.06)] flex flex-col gap-3 sm:flex-row sm:items-center">
             <StatusBadge status={doc.status} />
-            <div className="flex items-center gap-[6px] text-[13.5px] text-[#666666]">
+            <div className="flex items-center gap-1.5 text-[13.5px] text-[#666666]">
               {doc.status === 'COMPLETED' && <Check size={14} className="text-[#22C55E]" strokeWidth={2.5} />}
               {doc.status === 'COMPLETED'
                 ? `Analysis finished${doc.lastAnalyzedAt ? ` · last analyzed ${formatDate(doc.lastAnalyzedAt)}` : ''}`
@@ -225,7 +225,7 @@ export function DocumentDetailClient({ id }: { id: string }) {
                     : 'Queued for analysis'}
             </div>
             {edgarDocument && filingSummary(doc) && (
-              <div className="flex items-center gap-[6px] text-[13.5px] font-semibold text-[#333333]">
+              <div className="flex items-center gap-1.5 text-[13.5px] font-semibold text-[#333333]">
                 <Landmark size={14} className="text-[#666666]" />
                 {filingSummary(doc)}
               </div>
@@ -233,10 +233,10 @@ export function DocumentDetailClient({ id }: { id: string }) {
           </div>
 
           <div className="rounded-[14px] bg-white p-6 shadow-[0_1px_4px_rgba(0,0,0,.06)]">
-            <div className="mb-[18px] text-[11px] font-bold uppercase tracking-[.12em] text-[#AAAAAA]">
+            <div className="mb-4.5 text-[11px] font-bold uppercase tracking-[.12em] text-[#AAAAAA]">
               {edgarDocument ? 'Filing Information' : 'File Information'}
             </div>
-            <div className="grid grid-cols-1 gap-[18px] sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4.5 sm:grid-cols-2">
               {detailRows.map(([label, value]) => (
                 <div key={label}>
                   <div className="mb-1 text-xs text-[#AAAAAA]">{label}</div>
@@ -257,7 +257,7 @@ export function DocumentDetailClient({ id }: { id: string }) {
           </div>
 
           <div className="rounded-[14px] bg-white p-6 shadow-[0_1px_4px_rgba(0,0,0,.06)]">
-            <div className="flex items-start gap-[14px]">
+            <div className="flex items-start gap-3.5">
               <div className="w-10 h-10 rounded-[11px] bg-[#F5F5F5] flex items-center justify-center flex-none">
                 <MessageSquare size={20} className="text-[#666666]" />
               </div>
@@ -265,14 +265,14 @@ export function DocumentDetailClient({ id }: { id: string }) {
                 <h2 className="text-[15px] font-bold text-[#111111]">
                   Ask questions about this document
                 </h2>
-                <p className="mt-[5px] text-[13.5px] leading-[1.6] text-[#888888]">
+                <p className="mt-1.25 text-[13.5px] leading-[1.6] text-[#888888]">
                   Document summaries are generated on demand through RAG Chat. This document is
                   indexed and ready when analysis is complete.
                 </p>
                 {canOpenChat ? (
                   <Link
                     href="/chat"
-                    className="mt-[14px] inline-flex items-center gap-[7px] rounded-lg bg-[#111111] px-4 py-2 text-[13px] font-semibold text-white hover:bg-[#333333]"
+                    className="mt-3.5 inline-flex items-center gap-1.75 rounded-lg bg-[#111111] px-4 py-2 text-[13px] font-semibold text-white hover:bg-[#333333]"
                   >
                     <MessageSquare size={14} />
                     Open RAG Chat
@@ -281,7 +281,7 @@ export function DocumentDetailClient({ id }: { id: string }) {
                   <button
                     type="button"
                     disabled
-                    className="mt-[14px] inline-flex items-center gap-[7px] rounded-lg bg-[#111111] px-4 py-2 text-[13px] font-semibold text-white opacity-45"
+                    className="mt-3.5 inline-flex items-center gap-1.75 rounded-lg bg-[#111111] px-4 py-2 text-[13px] font-semibold text-white opacity-45"
                   >
                     <MessageSquare size={14} />
                     Chat available after analysis
@@ -293,15 +293,15 @@ export function DocumentDetailClient({ id }: { id: string }) {
         </div>
 
         {/* Right: metadata */}
-        <div className="w-full lg:w-[268px] flex-none flex flex-col gap-[14px]">
-          <div className="rounded-[14px] bg-white p-[18px] shadow-[0_1px_4px_rgba(0,0,0,.06)]">
-            <div className="mb-[14px] text-[11px] font-bold uppercase tracking-[.12em] text-[#AAAAAA]">
+        <div className="w-full lg:w-67 flex-none flex flex-col gap-3.5">
+          <div className="rounded-[14px] bg-white p-4.5 shadow-[0_1px_4px_rgba(0,0,0,.06)]">
+            <div className="mb-3.5 text-[11px] font-bold uppercase tracking-[.12em] text-[#AAAAAA]">
               Analysis
             </div>
-            <div className="flex flex-col gap-[10px]">
-              <div className="flex items-center gap-[9px]">
+            <div className="flex flex-col gap-2.5">
+              <div className="flex items-center gap-2.25">
                 <div
-                  className={`h-[7px] w-[7px] rounded-full flex-none ${
+                  className={`h-1.75 w-1.75 rounded-full flex-none ${
                     doc.status === 'COMPLETED'
                       ? 'bg-[#22C55E]'
                       : doc.status === 'FAILED'
@@ -329,7 +329,7 @@ export function DocumentDetailClient({ id }: { id: string }) {
             <div className="flex flex-col">
               <button
                 onClick={handleView}
-                className="flex items-center gap-[10px] w-full rounded-[9px] px-3 py-[11px] text-sm font-medium text-[#333333] hover:bg-[#F5F5F5]"
+                className="flex items-center gap-2.5 w-full rounded-[9px] px-3 py-2.75 text-sm font-medium text-[#333333] hover:bg-[#F5F5F5]"
               >
                 <Download size={15} className="text-[#666666]" />
                 {rawActionLabel}
@@ -337,14 +337,14 @@ export function DocumentDetailClient({ id }: { id: string }) {
               <button
                 onClick={handleAnalyze}
                 disabled={analyzing || !canAnalyze}
-                className="flex items-center gap-[10px] w-full rounded-[9px] px-3 py-[11px] text-sm font-medium text-[#333333] hover:bg-[#F5F5F5] disabled:opacity-60"
+                className="flex items-center gap-2.5 w-full rounded-[9px] px-3 py-2.75 text-sm font-medium text-[#333333] hover:bg-[#F5F5F5] disabled:opacity-60"
               >
                 <RotateCcw size={15} className="text-[#666666]" />
                 Re-run analysis
               </button>
               <button
                 onClick={handleDelete}
-                className="flex items-center gap-[10px] w-full rounded-[9px] px-3 py-[11px] text-sm font-medium text-[#B91C1C] hover:bg-[#FEF2F2]"
+                className="flex items-center gap-2.5 w-full rounded-[9px] px-3 py-2.75 text-sm font-medium text-[#B91C1C] hover:bg-[#FEF2F2]"
               >
                 <Trash2 size={15} />
                 Delete document

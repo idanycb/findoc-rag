@@ -97,8 +97,8 @@ export function ChatClient() {
             Grounded in your team vault
           </p>
         </div>
-        <div className="hidden items-center gap-2 rounded-lg border border-[#E8E8E8] bg-[#F5F5F5] px-[13px] py-[7px] sm:flex">
-          <span className="h-[7px] w-[7px] rounded-full bg-[#22C55E]" />
+        <div className="hidden items-center gap-2 rounded-lg border border-[#E8E8E8] bg-[#F5F5F5] px-3.25 py-1.75 sm:flex">
+          <span className="h-1.75 w-1.75 rounded-full bg-[#22C55E]" />
           <span className="text-[13px] font-medium text-[#555555]">
             {indexedCount === null
               ? 'Vault indexed'
@@ -110,12 +110,12 @@ export function ChatClient() {
       {/* Messages */}
       <div className="flex-1 overflow-auto px-5 py-4 md:px-7 md:py-7 flex flex-col gap-5">
         {showEmpty && (
-          <div className="flex gap-[13px] max-w-[680px]">
+          <div className="flex gap-3.25 max-w-170">
             <div className="w-8 h-8 rounded-[9px] bg-[#111111] flex items-center justify-center flex-none">
               <MessageSquare size={15} className="text-white" />
             </div>
             <div>
-              <div className="bg-white rounded-[4px_14px_14px_14px] px-[18px] py-[14px] shadow-[0_1px_3px_rgba(0,0,0,.06)]">
+              <div className="bg-white rounded-[4px_14px_14px_14px] px-4.5 py-3.5 shadow-[0_1px_3px_rgba(0,0,0,.06)]">
                 <p className="text-[14.5px] text-[#333333] leading-[1.65]">
                   Hi {claims?.sub ?? 'there'} — I can answer questions grounded in your
                   team&apos;s indexed documents
@@ -131,7 +131,7 @@ export function ChatClient() {
                   . What would you like to know?
                 </p>
               </div>
-              <span className="text-[11px] text-[#BBBBBB] mt-[5px] ml-1 block">
+              <span className="text-[11px] text-[#BBBBBB] mt-1.25 ml-1 block">
                 just now
               </span>
             </div>
@@ -142,29 +142,29 @@ export function ChatClient() {
           msg.role === 'user' ? (
             <div
               key={i}
-              className="flex gap-[13px] max-w-[680px] self-end flex-row-reverse"
+              className="flex gap-3.25 max-w-170 self-end flex-row-reverse"
             >
               <div className="w-8 h-8 rounded-full bg-[#E5E5E5] flex items-center justify-center flex-none text-[11px] font-bold text-[#555555]">
                 {initials}
               </div>
-              <div className="bg-[#111111] rounded-[14px_4px_14px_14px] px-[17px] py-3">
+              <div className="bg-[#111111] rounded-[14px_4px_14px_14px] px-4.25 py-3">
                 <p className="text-[14.5px] text-white leading-[1.6]">{msg.content}</p>
               </div>
             </div>
           ) : (
-            <div key={i} className="flex gap-[13px] max-w-[680px]">
+            <div key={i} className="flex gap-3.25 max-w-170">
               <div className="w-8 h-8 rounded-[9px] bg-[#111111] flex items-center justify-center flex-none">
                 <MessageSquare size={15} className="text-white" />
               </div>
               <div>
-                <div className="bg-white rounded-[4px_14px_14px_14px] px-[18px] py-[14px] shadow-[0_1px_3px_rgba(0,0,0,.06)]">
+                <div className="bg-white rounded-[4px_14px_14px_14px] px-4.5 py-3.5 shadow-[0_1px_3px_rgba(0,0,0,.06)]">
                   <div className="prose prose-sm max-w-none text-[#333333] leading-[1.7] [&_strong]:text-[#111111] [&_code]:text-[#111111]">
                     <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>
                       {msg.content}
                     </ReactMarkdown>
                   </div>
                 </div>
-                <span className="text-[11px] text-[#BBBBBB] mt-[5px] ml-1 block">
+                <span className="text-[11px] text-[#BBBBBB] mt-1.25 ml-1 block">
                   just now
                 </span>
               </div>
@@ -173,11 +173,11 @@ export function ChatClient() {
         )}
 
         {isPending && (
-          <div className="flex gap-[13px] max-w-[680px]">
+          <div className="flex gap-3.25 max-w-170">
             <div className="w-8 h-8 rounded-[9px] bg-[#111111] flex items-center justify-center flex-none">
               <MessageSquare size={15} className="text-white" />
             </div>
-            <div className="bg-white rounded-[4px_14px_14px_14px] px-[18px] py-[14px] shadow-[0_1px_3px_rgba(0,0,0,.06)]">
+            <div className="bg-white rounded-[4px_14px_14px_14px] px-4.5 py-3.5 shadow-[0_1px_3px_rgba(0,0,0,.06)]">
               <span className="text-[14px] text-[#888888] animate-pulse">Thinking…</span>
             </div>
           </div>
@@ -189,12 +189,12 @@ export function ChatClient() {
       {/* Suggestions + input */}
       <div className="px-5 pb-4 md:px-7 md:pb-6">
         {showEmpty && (
-          <div className="flex gap-[9px] mb-3 flex-wrap">
+          <div className="flex gap-2.25 mb-3 flex-wrap">
             {SUGGESTIONS.map((s) => (
               <button
                 key={s}
                 onClick={() => sendMessage(s)}
-                className="text-[12.5px] text-[#666666] border border-[#E5E5E5] bg-white rounded-full px-[13px] py-[6px] hover:border-[#BBBBBB] hover:text-[#111111] transition-colors"
+                className="text-[12.5px] text-[#666666] border border-[#E5E5E5] bg-white rounded-full px-3.25 py-1.5 hover:border-[#BBBBBB] hover:text-[#111111] transition-colors"
               >
                 {s}
               </button>
@@ -210,7 +210,7 @@ export function ChatClient() {
 
         <form
           onSubmit={handleSubmit}
-          className="flex items-center gap-[10px] bg-white border border-[#E5E5E5] rounded-[14px] p-2 pl-[18px] shadow-[0_1px_3px_rgba(0,0,0,.05)]"
+          className="flex items-center gap-2.5 bg-white border border-[#E5E5E5] rounded-[14px] p-2 pl-4.5 shadow-[0_1px_3px_rgba(0,0,0,.05)]"
         >
           <textarea
             ref={textareaRef}
@@ -220,18 +220,18 @@ export function ChatClient() {
             placeholder="Ask a question about your documents…"
             maxLength={MAX_QUESTION_LENGTH}
             rows={1}
-            className="flex-1 bg-transparent text-[14.5px] text-[#111111] placeholder:text-[#BBBBBB] outline-none resize-none"
+            className="flex-1 bg-transparent text-[14.5px] text-[#111111] placeholder:text-[#BBBBBB] outline-hidden resize-none"
           />
           <button
             type="submit"
             disabled={isPending || !input.trim() || input.trim().length > MAX_QUESTION_LENGTH}
-            className="w-[38px] h-[38px] rounded-[10px] bg-[#111111] flex items-center justify-center hover:bg-[#333333] transition-colors disabled:opacity-40 flex-none"
+            className="w-9.5 h-9.5 rounded-[10px] bg-[#111111] flex items-center justify-center hover:bg-[#333333] transition-colors disabled:opacity-40 flex-none"
           >
             <Send size={16} className="text-white" />
           </button>
         </form>
 
-        <p className="text-center text-[11.5px] text-[#CCCCCC] mt-[10px]">
+        <p className="text-center text-[11.5px] text-[#CCCCCC] mt-2.5">
           Answers are grounded in your team&apos;s indexed documents. Always verify important
           figures.
         </p>

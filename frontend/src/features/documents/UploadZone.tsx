@@ -43,19 +43,19 @@ export function UploadZone({ onUpload, uploading }: UploadZoneProps) {
       onDrop={handleDrop}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
-      className={`border-[1.5px] border-dashed rounded-[14px] bg-white p-[26px] flex flex-col items-center text-center cursor-pointer shadow-[0_1px_4px_rgba(0,0,0,.06)] transition-colors ${
+      className={`border-[1.5px] border-dashed rounded-[14px] bg-white p-6.5 flex flex-col items-center text-center cursor-pointer shadow-[0_1px_4px_rgba(0,0,0,.06)] transition-colors ${
         dragOver
           ? 'border-[#111111] bg-[#F7F7F7]'
           : 'border-[#E5E5E5] hover:border-[#BBBBBB]'
       } ${uploading ? 'pointer-events-none opacity-60' : ''}`}
     >
-      <div className="w-12 h-12 rounded-[12px] bg-[#F5F5F5] flex items-center justify-center">
+      <div className="w-12 h-12 rounded-xl bg-[#F5F5F5] flex items-center justify-center">
         <Upload size={22} className="text-[#111111]" />
       </div>
-      <p className="text-[15px] font-semibold text-[#111111] mt-[14px]">
+      <p className="text-[15px] font-semibold text-[#111111] mt-3.5">
         {uploading ? 'Uploading…' : 'Click to upload or drag and drop'}
       </p>
-      <p className="text-[12px] text-[#AAAAAA] mt-[6px]">
+      <p className="text-[12px] text-[#AAAAAA] mt-1.5">
         PDF, TXT, MD or DOCX · max 10MB
       </p>
       <input

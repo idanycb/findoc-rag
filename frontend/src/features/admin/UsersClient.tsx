@@ -18,7 +18,7 @@ function RoleBadge({ role }: { role: UserRole }) {
   const cfg = ROLE_COLORS[role];
   return (
     <span
-      className="inline-flex rounded-md border px-[10px] py-1 text-[11px] font-bold"
+      className="inline-flex rounded-md border px-2.5 py-1 text-[11px] font-bold"
       style={{ color: cfg.text, background: cfg.bg, borderColor: cfg.border }}
     >
       {role}
@@ -173,13 +173,13 @@ export function UsersClient() {
       <div className="flex items-center justify-between bg-white px-5 py-4 border-b border-[#EBEBEB] md:px-7 md:py-5">
         <div>
           <h1 className="text-[22px] font-bold text-[#111111] tracking-[-.01em]">Users</h1>
-          <p className="text-[11px] uppercase tracking-[.12em] text-[#AAAAAA] mt-[2px]">
+          <p className="text-[11px] uppercase tracking-[.12em] text-[#AAAAAA] mt-0.5">
             {isSuperAdmin ? 'All users across every team.' : 'Members of your team.'}
           </p>
         </div>
         <button
           onClick={() => { setShowCreate(true); setCreateError(''); }}
-          className="flex items-center gap-2 bg-[#111111] text-white font-semibold text-[13.5px] px-4 h-[38px] rounded-lg hover:bg-[#333333] transition-colors"
+          className="flex items-center gap-2 bg-[#111111] text-white font-semibold text-[13.5px] px-4 h-9.5 rounded-lg hover:bg-[#333333] transition-colors"
         >
           <Plus size={16} strokeWidth={2.2} />
           Create user
@@ -189,9 +189,9 @@ export function UsersClient() {
       <div className="px-5 py-4 md:px-7 md:py-7 flex flex-col gap-4">
         {/* Info banner */}
         {isSuperAdmin && (
-          <div className="flex items-start gap-[9px] bg-[#EFF6FF] border border-[#BFDBFE] rounded-[10px] px-3 py-[11px]">
-            <Info size={14} className="text-[#1D4ED8] flex-none mt-[1px]" />
-            <p className="text-[11.5px] text-[#1E40AF] leading-[1.5]">
+          <div className="flex items-start gap-2.25 bg-[#EFF6FF] border border-[#BFDBFE] rounded-[10px] px-3 py-2.75">
+            <Info size={14} className="text-[#1D4ED8] flex-none mt-px" />
+            <p className="text-[11.5px] text-[#1E40AF] leading-normal">
               Super admin sees all users. Admins see only their own team.
             </p>
           </div>
@@ -205,9 +205,9 @@ export function UsersClient() {
 
         {/* Create form */}
         {showCreate && (
-          <div className="bg-white rounded-[12px] p-5 shadow-[0_1px_4px_rgba(0,0,0,.06)]">
+          <div className="bg-white rounded-xl p-5 shadow-[0_1px_4px_rgba(0,0,0,.06)]">
             <div className="flex items-center justify-between mb-4">
-              <span className="text-[11px] font-bold uppercase text-[#AAAAAA] tracking-[.1em]">
+              <span className="text-[11px] font-bold uppercase text-[#AAAAAA] tracking-widest">
                 CREATE USER
               </span>
               <button onClick={() => setShowCreate(false)}>
@@ -221,7 +221,7 @@ export function UsersClient() {
                   value={form.username}
                   onChange={(e) => setForm((f) => ({ ...f, username: e.target.value }))}
                   placeholder="bob.member"
-                  className="mt-1 w-full bg-[#F7F7F7] border border-[#E8E8E8] rounded-[9px] px-3 h-[42px] text-[14px] text-[#111111] placeholder:text-[#BBBBBB] outline-none focus:border-[#111111] transition-colors"
+                  className="mt-1 w-full bg-[#F7F7F7] border border-[#E8E8E8] rounded-[9px] px-3 h-10.5 text-[14px] text-[#111111] placeholder:text-[#BBBBBB] outline-hidden focus:border-[#111111] transition-colors"
                 />
               </div>
               <div>
@@ -231,7 +231,7 @@ export function UsersClient() {
                   value={form.password}
                   onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
                   placeholder="Min. 8 characters"
-                  className="mt-1 w-full bg-[#F7F7F7] border border-[#E8E8E8] rounded-[9px] px-3 h-[42px] text-[14px] text-[#111111] placeholder:text-[#BBBBBB] outline-none focus:border-[#111111] transition-colors"
+                  className="mt-1 w-full bg-[#F7F7F7] border border-[#E8E8E8] rounded-[9px] px-3 h-10.5 text-[14px] text-[#111111] placeholder:text-[#BBBBBB] outline-hidden focus:border-[#111111] transition-colors"
                 />
               </div>
               {isSuperAdmin && (
@@ -242,7 +242,7 @@ export function UsersClient() {
                       <select
                         value={form.role}
                         onChange={(e) => setForm((f) => ({ ...f, role: e.target.value as 'ADMIN' | 'MEMBER' }))}
-                        className="w-full bg-[#F7F7F7] border border-[#E8E8E8] rounded-[9px] px-3 h-[42px] text-[14px] text-[#111111] outline-none appearance-none focus:border-[#111111] transition-colors"
+                        className="w-full bg-[#F7F7F7] border border-[#E8E8E8] rounded-[9px] px-3 h-10.5 text-[14px] text-[#111111] outline-hidden appearance-none focus:border-[#111111] transition-colors"
                       >
                         <option value="MEMBER">MEMBER</option>
                         <option value="ADMIN">ADMIN</option>
@@ -256,7 +256,7 @@ export function UsersClient() {
                       <select
                         value={form.teamId}
                         onChange={(e) => setForm((f) => ({ ...f, teamId: e.target.value }))}
-                        className="w-full bg-[#F7F7F7] border border-[#E8E8E8] rounded-[9px] px-3 h-[42px] text-[14px] text-[#111111] outline-none appearance-none focus:border-[#111111] transition-colors"
+                        className="w-full bg-[#F7F7F7] border border-[#E8E8E8] rounded-[9px] px-3 h-10.5 text-[14px] text-[#111111] outline-hidden appearance-none focus:border-[#111111] transition-colors"
                       >
                         <option value="">Select team…</option>
                         {teams.map((t) => (
@@ -278,7 +278,7 @@ export function UsersClient() {
               <button
                 onClick={handleCreate}
                 disabled={isPending || !form.username || form.password.length < 8 || (isSuperAdmin && !form.teamId)}
-                className="bg-[#111111] text-white font-semibold text-[13px] px-5 h-[38px] rounded-[9px] hover:bg-[#333333] transition-colors disabled:opacity-60"
+                className="bg-[#111111] text-white font-semibold text-[13px] px-5 h-9.5 rounded-[9px] hover:bg-[#333333] transition-colors disabled:opacity-60"
               >
                 {isPending ? 'Creating…' : 'Create user'}
               </button>
@@ -287,12 +287,12 @@ export function UsersClient() {
         )}
 
         {/* Filters */}
-        <div className="flex gap-[10px] flex-wrap">
+        <div className="flex gap-2.5 flex-wrap">
           {roleFilters.map((f) => (
             <button
               key={f}
               onClick={() => setRoleFilter(f)}
-              className={`inline-flex items-center gap-[7px] text-[13px] font-semibold px-[14px] py-[7px] rounded-[8px] border transition-colors ${
+              className={`inline-flex items-center gap-1.75 text-[13px] font-semibold px-3.5 py-1.75 rounded-lg border transition-colors ${
                 roleFilter === f
                   ? 'text-white bg-[#111111] border-[#111111]'
                   : 'text-[#666666] bg-white border-[#E5E5E5] hover:text-[#111111]'
@@ -308,7 +308,7 @@ export function UsersClient() {
               <button
                 key={f}
                 onClick={() => setTeamFilter(f)}
-                className={`inline-flex items-center gap-[7px] text-[13px] px-[14px] py-[7px] rounded-[8px] border transition-colors ${
+                className={`inline-flex items-center gap-1.75 text-[13px] px-3.5 py-1.75 rounded-lg border transition-colors ${
                   teamFilter === f
                     ? 'text-white bg-[#111111] border-[#111111] font-semibold'
                     : 'text-[#666666] bg-white border-[#E5E5E5] hover:text-[#111111]'
@@ -329,7 +329,7 @@ export function UsersClient() {
             {/* Desktop table */}
             <div className="hidden sm:block bg-white rounded-[14px] overflow-hidden shadow-[0_1px_4px_rgba(0,0,0,.06)]">
               <div
-                className={`grid px-5 py-[13px] border-b border-[#F5F5F5] text-[11px] font-bold uppercase text-[#AAAAAA] tracking-[.1em] ${isSuperAdmin ? 'grid-cols-[1fr_160px_180px_140px]' : 'grid-cols-[1fr_160px_140px]'}`}
+                className={`grid px-5 py-3.25 border-b border-[#F5F5F5] text-[11px] font-bold uppercase text-[#AAAAAA] tracking-widest ${isSuperAdmin ? 'grid-cols-[1fr_160px_180px_140px]' : 'grid-cols-[1fr_160px_140px]'}`}
               >
                 <span>USERNAME</span>
                 <span>ROLE</span>
@@ -339,7 +339,7 @@ export function UsersClient() {
               {filtered.map((user) => (
                 <div
                   key={user.id}
-                  className={`grid px-5 py-[14px] border-b border-[#F8F8F8] last:border-0 items-center hover:bg-[#FAFAFA] transition-colors ${isSuperAdmin ? 'grid-cols-[1fr_160px_180px_140px]' : 'grid-cols-[1fr_160px_140px]'}`}
+                  className={`grid px-5 py-3.5 border-b border-[#F8F8F8] last:border-0 items-center hover:bg-[#FAFAFA] transition-colors ${isSuperAdmin ? 'grid-cols-[1fr_160px_180px_140px]' : 'grid-cols-[1fr_160px_140px]'}`}
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <div
@@ -372,7 +372,7 @@ export function UsersClient() {
                             handleRoleChange(user.id, e.target.value as 'ADMIN' | 'MEMBER')
                           }
                           disabled={isPending}
-                          className="appearance-none bg-transparent text-[11.5px] font-bold pr-4 outline-none cursor-pointer"
+                          className="appearance-none bg-transparent text-[11.5px] font-bold pr-4 outline-hidden cursor-pointer"
                           style={{ color: ROLE_COLORS[user.role]?.text }}
                         >
                           {roleOptionsFor(user).map((role) => (
@@ -399,7 +399,7 @@ export function UsersClient() {
                       <button
                         onClick={() => handleDelete(user.id, user.username)}
                         disabled={isPending}
-                        className="w-[30px] h-[30px] border border-[#FECACA] rounded-[7px] bg-[#FEF2F2] flex items-center justify-center hover:bg-[#FEE2E2] transition-colors disabled:opacity-60"
+                        className="w-7.5 h-7.5 border border-[#FECACA] rounded-[7px] bg-[#FEF2F2] flex items-center justify-center hover:bg-[#FEE2E2] transition-colors disabled:opacity-60"
                       >
                         <Trash2 size={13} className="text-[#EF4444]" />
                       </button>
@@ -414,10 +414,10 @@ export function UsersClient() {
               {filtered.map((user) => (
                 <div
                   key={user.id}
-                  className="bg-white rounded-[13px] p-[14px] shadow-[0_1px_3px_rgba(0,0,0,.06)] flex items-center gap-3"
+                  className="bg-white rounded-[13px] p-3.5 shadow-[0_1px_3px_rgba(0,0,0,.06)] flex items-center gap-3"
                 >
                   <div
-                    className="w-[38px] h-[38px] rounded-full flex items-center justify-center font-semibold text-[13px] flex-none"
+                    className="w-9.5 h-9.5 rounded-full flex items-center justify-center font-semibold text-[13px] flex-none"
                     style={{
                       background: user.role === 'SUPER_ADMIN'
                         ? '#FDE68A'
@@ -437,7 +437,7 @@ export function UsersClient() {
                     <div className="text-sm font-semibold text-[#111111] truncate">
                       {user.username}
                     </div>
-                    <div className="flex items-center gap-2 mt-[4px]">
+                    <div className="flex items-center gap-2 mt-1">
                       {canChangeRole(user) && (isAdmin || isSuperAdmin) ? (
                         <div className="relative inline-block">
                           <select
@@ -446,7 +446,7 @@ export function UsersClient() {
                               handleRoleChange(user.id, e.target.value as 'ADMIN' | 'MEMBER')
                             }
                             disabled={isPending}
-                            className="appearance-none rounded-md border bg-white py-1 pl-[10px] pr-6 text-[11px] font-bold outline-none disabled:opacity-60"
+                            className="appearance-none rounded-md border bg-white py-1 pl-2.5 pr-6 text-[11px] font-bold outline-hidden disabled:opacity-60"
                             style={{
                               color: ROLE_COLORS[user.role]?.text,
                               borderColor: ROLE_COLORS[user.role]?.border,

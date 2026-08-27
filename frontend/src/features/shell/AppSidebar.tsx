@@ -25,7 +25,7 @@ function NavItem({ href, icon, label, active }: NavItemProps) {
   return (
     <Link
       href={href}
-      className={`flex items-center gap-[11px] px-3 py-[10px] rounded-[10px] text-sm transition-colors ${
+      className={`flex items-center gap-2.75 px-3 py-2.5 rounded-[10px] text-sm transition-colors ${
         active
           ? 'bg-[#111111] text-white font-semibold'
           : 'text-[#666666] hover:bg-[#F5F5F5] hover:text-[#111111]'
@@ -61,9 +61,9 @@ export function AppSidebar() {
   const avatarTextColor = isSuperAdmin ? '#92400E' : '#555555';
 
   return (
-    <aside className="w-[220px] flex-none bg-white border-r border-[#F0F0F0] flex flex-col py-4 px-3 h-screen sticky top-0">
+    <aside className="w-55 flex-none bg-white border-r border-[#F0F0F0] flex flex-col py-4 px-3 h-screen sticky top-0">
       {/* Logo */}
-      <div className="flex items-center gap-[10px] px-[10px] py-2 mb-3">
+      <div className="flex items-center gap-2.5 px-2.5 py-2 mb-3">
         <div className="w-9 h-9 rounded-[10px] bg-[#111111] flex items-center justify-center flex-none">
           <FileText size={18} className="text-white" strokeWidth={2.2} />
         </div>
@@ -91,8 +91,8 @@ export function AppSidebar() {
               label="Users"
               active={pathname === '/users' || pathname.startsWith('/users/')}
             />
-            <div className="mt-[14px] bg-[#FFFBEB] border border-[#FDE68A] rounded-[10px] p-[10px] px-3">
-              <p className="text-[11px] text-[#92400E] leading-[1.5]">
+            <div className="mt-3.5 bg-[#FFFBEB] border border-[#FDE68A] rounded-[10px] p-2.5 px-3">
+              <p className="text-[11px] text-[#92400E] leading-normal">
                 <span className="font-bold">System administrator</span> - not assigned to a
                 team. Manages all teams and users.
               </p>
@@ -132,9 +132,9 @@ export function AppSidebar() {
 
       {/* Footer */}
       <div>
-        <div className="bg-[#F5F5F5] rounded-xl p-[10px] px-3 flex items-center gap-[10px]">
+        <div className="bg-[#F5F5F5] rounded-xl p-2.5 px-3 flex items-center gap-2.5">
           <div
-            className="w-[30px] h-[30px] rounded-full flex items-center justify-center font-bold text-[11px] flex-none"
+            className="w-7.5 h-7.5 rounded-full flex items-center justify-center font-bold text-[11px] flex-none"
             style={{ background: avatarGradient, color: avatarTextColor }}
           >
             {initials}
@@ -148,7 +148,7 @@ export function AppSidebar() {
         </div>
         <button
           onClick={logout}
-          className="flex items-center gap-2 w-full px-3 py-[10px] mt-0.5 rounded-[9px] text-[#666666] text-sm hover:bg-[#F5F5F5] hover:text-[#111111] transition-colors"
+          className="flex items-center gap-2 w-full px-3 py-2.5 mt-0.5 rounded-[9px] text-[#666666] text-sm hover:bg-[#F5F5F5] hover:text-[#111111] transition-colors"
         >
           <LogOut size={15} />
           Sign Out

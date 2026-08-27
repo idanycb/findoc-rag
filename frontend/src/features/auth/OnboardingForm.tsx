@@ -38,8 +38,8 @@ export function OnboardingForm() {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="w-full max-w-[420px] mx-auto">
-      <div className="mb-6 flex items-center gap-[10px] rounded-[10px] border border-[#F59E0B] bg-[#FFFBEB] px-4 py-3">
+    <form onSubmit={handleSubmit} className="w-full max-w-105 mx-auto">
+      <div className="mb-6 flex items-center gap-2.5 rounded-[10px] border border-[#F59E0B] bg-[#FFFBEB] px-4 py-3">
         <AlertTriangle size={16} className="flex-none text-[#D97706]" />
         <p className="text-[13px] leading-[1.45] text-[#92400E]">
           <span className="font-bold">First boot detected.</span> No users exist yet. Create the
@@ -51,15 +51,15 @@ export function OnboardingForm() {
         <h1 className="text-[22px] font-bold tracking-[-.01em] text-[#111111]">
           Initialize system
         </h1>
-        <p className="mt-[6px] text-sm text-[#888888]">
+        <p className="mt-1.5 text-sm text-[#888888]">
           Create the initial <strong className="font-semibold text-[#111111]">SUPER_ADMIN</strong>{' '}
           account.
         </p>
 
-        <div className="mt-7 flex flex-col gap-[18px]">
+        <div className="mt-7 flex flex-col gap-4.5">
           <div>
             <label className="text-[13px] font-medium text-[#444444]">Username</label>
-            <div className="mt-[7px] flex h-12 items-center gap-[10px] rounded-[9px] border border-[#E8E8E8] bg-[#F7F7F7] px-[14px] transition-colors focus-within:border-[#111111]">
+            <div className="mt-1.75 flex h-12 items-center gap-2.5 rounded-[9px] border border-[#E8E8E8] bg-[#F7F7F7] px-3.5 transition-colors focus-within:border-[#111111]">
               <User size={16} className="text-[#B0B0B0] flex-none" />
               <input
                 type="text"
@@ -68,14 +68,14 @@ export function OnboardingForm() {
                 placeholder="super_admin"
                 required
                 autoComplete="username"
-                className="flex-1 bg-transparent text-[15px] text-[#111111] placeholder:text-[#B0B0B0] outline-none"
+                className="flex-1 bg-transparent text-[15px] text-[#111111] placeholder:text-[#B0B0B0] outline-hidden"
               />
             </div>
           </div>
 
           <div>
             <label className="text-[13px] font-medium text-[#444444]">Password</label>
-            <div className="mt-[7px] flex h-12 items-center gap-[10px] rounded-[9px] border border-[#E8E8E8] bg-[#F7F7F7] px-[14px] transition-colors focus-within:border-[#111111]">
+            <div className="mt-1.75 flex h-12 items-center gap-2.5 rounded-[9px] border border-[#E8E8E8] bg-[#F7F7F7] px-3.5 transition-colors focus-within:border-[#111111]">
               <Lock size={16} className="text-[#B0B0B0] flex-none" />
               <input
                 type="password"
@@ -85,11 +85,11 @@ export function OnboardingForm() {
                 required
                 minLength={8}
                 autoComplete="new-password"
-                className="flex-1 bg-transparent text-[15px] text-[#111111] placeholder:text-[#B0B0B0] outline-none"
+                className="flex-1 bg-transparent text-[15px] text-[#111111] placeholder:text-[#B0B0B0] outline-hidden"
               />
             </div>
             <p
-              className={`mt-[7px] flex items-center gap-[6px] text-xs transition-colors ${passwordOk ? 'text-[#6B6B6B]' : 'text-[#999999]'}`}
+              className={`mt-1.75 flex items-center gap-1.5 text-xs transition-colors ${passwordOk ? 'text-[#6B6B6B]' : 'text-[#999999]'}`}
             >
               <Check
                 size={13}
@@ -110,7 +110,7 @@ export function OnboardingForm() {
         <button
           type="submit"
           disabled={isPending || !passwordOk}
-          className="mt-[26px] flex h-[50px] w-full items-center justify-center gap-2 rounded-[11px] bg-[#111111] text-[15px] font-semibold text-white transition-colors hover:bg-[#333333] disabled:opacity-60 sm:h-[46px] sm:rounded-[9px]"
+          className="mt-6.5 flex h-12.5 w-full items-center justify-center gap-2 rounded-[11px] bg-[#111111] text-[15px] font-semibold text-white transition-colors hover:bg-[#333333] disabled:opacity-60 sm:h-11.5 sm:rounded-[9px]"
         >
           <Plus size={16} />
           {isPending ? 'Creating…' : 'Create super admin'}

@@ -6,6 +6,9 @@ services:
       - SPRING_PROFILES_ACTIVE=demo
 
   frontend:
+    build:
+      args:
+        - NEXT_PUBLIC_DEMO_MODE=true
     restart: unless-stopped
 
   pgvector:

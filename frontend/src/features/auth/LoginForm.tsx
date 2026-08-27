@@ -10,6 +10,7 @@ import {
   safeRedirectPathForRole,
 } from '@/shared/lib/routes';
 import { useAuth } from '@/context/AuthContext';
+import { IS_DEMO_MODE } from '@/features/auth/demoMode';
 
 export function LoginForm() {
   const { claims, isHydrated } = useAuth();
@@ -129,6 +130,23 @@ export function LoginForm() {
           </div>
         </div>
       </div>
+
+      {IS_DEMO_MODE && (
+        <div className="mt-4 rounded-[9px] border border-[#E8E8E8] bg-[#F7F7F7] px-4 py-3">
+          <div className="text-[11px] font-semibold uppercase tracking-[.06em] text-[#888888]">
+            Demo credentials
+          </div>
+          <div className="mt-1.5 flex flex-col gap-0.5 text-[13px] text-[#444444]">
+            <span>
+              Username <span className="font-semibold text-[#111111]">demo</span>
+            </span>
+            <span>
+              Password{' '}
+              <span className="font-semibold text-[#111111]">password</span>
+            </span>
+          </div>
+        </div>
+      )}
 
       {error && (
         <div className="mt-4 rounded-[9px] border border-[#FECACA] bg-[#FEF2F2] px-4 py-3 text-[13px] text-[#B91C1C]">

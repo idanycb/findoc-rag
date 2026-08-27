@@ -17,9 +17,16 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class OnboardSuperAdminServiceTest {
 
-    private final InMemoryUserRepository users = new InMemoryUserRepository();
+    private final CountingUserRepository users = new CountingUserRepository();
+    private final RecordingOnboardingLock onboardingLock = new RecordingOnboardingLock();
     private final OnboardSuperAdminService service =
-            new OnboardSuperAdminService(users, users, new PlaintextPasswordEncoder(), new NoOpAuditLogger(), new NoOpDeploymentLimits());
+            new OnboardSuperAdminService(
+                    users,
+                    users,
+                    new PlaintextPasswordEncoder(),
+                    new NoOpAuditLogger(),
+                    new NoOpDeploymentLimits(),
+                    onboardingLock);
 
     @Test
     void onboard_onEmptySystem_createsTeamlessSuperAdminWithHashedPassword() {
@@ -39,6 +46,7 @@ class OnboardSuperAdminServiceTest {
 
         assertThatThrownBy(() -> service.onboard(new OnboardCommand("root", "password123")))
                 .isInstanceOf(OnboardingDisabledException.class);
+        assertThat(onboardingLock.acquisitions).isEqualTo(1);
     }
 
     @Test
@@ -51,5 +59,52 @@ class OnboardSuperAdminServiceTest {
         users.seed(new User(UUID.randomUUID(), "existing", "h", UserRole.MEMBER, UUID.randomUUID()));
 
         assertThat(service.isOnboardingEnabled()).isFalse();
+    }
+
+    @Test
+    void isOnboardingEnabled_reusesTheCompletedDatabaseResult() {
+        users.seed(new User(UUID.randomUUID(), "existing", "h", UserRole.MEMBER, UUID.randomUUID()));
+
+        assertThat(service.isOnboardingEnabled()).isFalse();
+        assertThat(service.isOnboardingEnabled()).isFalse();
+
+        assertThat(users.existsAnyCalls).isEqualTo(1);
+    }
+
+    @Test
+    void isOnboardingEnabled_doesNotCacheEnabledAcrossReplicas() {
+        assertThat(service.isOnboardingEnabled()).isTrue();
+        assertThat(service.isOnboardingEnabled()).isTrue();
+
+        assertThat(users.existsAnyCalls).isEqualTo(2);
+    }
+
+    @Test
+    void onboard_marksOnboardingCompleteWithoutAnotherDatabaseCheck() {
+        service.onboard(new OnboardCommand("root", "password123"));
+
+        assertThat(service.isOnboardingEnabled()).isFalse();
+        assertThat(users.existsAnyCalls).isEqualTo(1);
+        assertThat(onboardingLock.acquisitions).isEqualTo(1);
+    }
+
+    private static final class CountingUserRepository extends InMemoryUserRepository {
+        private int existsAnyCalls;
+
+        @Override
+        public boolean existsAny() {
+            existsAnyCalls++;
+            return super.existsAny();
+        }
+    }
+
+    private static final class RecordingOnboardingLock
+            implements com.danycb.findocAnalyzer.features.identity.application.out.OnboardingLockPort {
+        private int acquisitions;
+
+        @Override
+        public void acquire() {
+            acquisitions++;
+        }
     }
 }

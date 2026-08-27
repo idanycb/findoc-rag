@@ -4,6 +4,7 @@ import com.danycb.findocAnalyzer.infra.config.DeploymentLimitsPort;
 import com.danycb.findocAnalyzer.features.identity.application.dto.OnboardCommand;
 import com.danycb.findocAnalyzer.features.identity.application.exception.OnboardingDisabledException;
 import com.danycb.findocAnalyzer.features.identity.application.in.OnboardSuperAdminUseCase;
+import com.danycb.findocAnalyzer.features.identity.application.out.OnboardingLockPort;
 import com.danycb.findocAnalyzer.features.identity.application.out.PasswordEncoderPort;
 import com.danycb.findocAnalyzer.features.identity.application.out.UserReaderPort;
 import com.danycb.findocAnalyzer.features.identity.application.out.UserWriterPort;
@@ -21,16 +22,27 @@ public class OnboardSuperAdminService implements OnboardSuperAdminUseCase {
     private final PasswordEncoderPort passwordEncoder;
     private final IdentityAuditLogger audit;
     private final DeploymentLimitsPort limits;
+    private final OnboardingLockPort onboardingLock;
+    private volatile boolean onboardingKnownComplete;
 
     @Override
     public boolean isOnboardingEnabled() {
-        return !userExistence.existsAny();
+        if (onboardingKnownComplete) {
+            return false;
+        }
+
+        boolean enabled = !userExistence.existsAny();
+        if (!enabled) {
+            onboardingKnownComplete = true;
+        }
+        return enabled;
     }
 
     @Override
     @Transactional
     public User onboard(OnboardCommand command) {
-        if (userExistence.existsAny()) {
+        onboardingLock.acquire();
+        if (!isOnboardingEnabled()) {
             throw new OnboardingDisabledException(
                     "System already initialized; onboarding is disabled");
         }
@@ -46,6 +58,7 @@ public class OnboardSuperAdminService implements OnboardSuperAdminUseCase {
 
         User saved = userWriter.save(superAdmin);
         audit.superAdminOnboarded(saved);
+        onboardingKnownComplete = true;
         return saved;
     }
 }

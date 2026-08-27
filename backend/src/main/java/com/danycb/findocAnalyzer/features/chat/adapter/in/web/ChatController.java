@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.UUID;
+import java.util.stream.IntStream;
 
 @RestController
 @RequestMapping("/api/v1/chat")
@@ -31,6 +32,8 @@ public class ChatController {
         }
         UUID teamId = principal.teamId();
         var result = answerQuestion.execute(request.question(), teamId);
-        return new ChatResponse(result.answer(), result.citations().stream().map(CitationResponse::from).toList());
+        return new ChatResponse(result.answer(), IntStream.range(0, result.citations().size())
+                .mapToObj(index -> CitationResponse.from(result.citations().get(index), index + 1))
+                .toList());
     }
 }

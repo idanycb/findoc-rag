@@ -1,5 +1,6 @@
 import logging
 import os
+import re
 from typing import Any, Optional
 
 from .schemas import (
@@ -58,6 +59,17 @@ TEN_Q_SECTION_TITLES = {
     "Part II Item 5": "Other Information",
     "Part II Item 6": "Exhibits",
 }
+
+
+NAMED_SECTION_PATTERNS = (
+    ("Explanatory Note", re.compile(r"^\s*explanatory\s+note\b", re.IGNORECASE)),
+    ("Introductory Note", re.compile(r"^\s*introductory\s+note\b", re.IGNORECASE)),
+    ("Forward-Looking Note", re.compile(r"^\s*forward-looking\s+note\b", re.IGNORECASE)),
+)
+NAMED_SECTION_FALLBACK_END = re.compile(
+    r"^\s*(?:part\s+[ivx]+\b|item\s+\d+[a-z]?\.?\b|signatures\b)",
+    re.IGNORECASE | re.MULTILINE,
+)
 
 
 def configure_edgar() -> None:
@@ -150,33 +162,136 @@ def resolve_filing(company: Any, accession: str) -> Optional[Any]:
 
 
 def extract_sections(report: Any) -> list[FilingSection]:
+    return dedupe_sections(extract_named_sections(report) + extract_document_sections(report))
+
+
+def extract_document_sections(report: Any) -> list[FilingSection]:
     form = str(getattr(report, "form", "") or "")
     is_ten_q = form.startswith("10-Q")
-    candidates = list((TEN_Q_SECTION_TITLES if is_ten_q else TEN_K_SECTION_TITLES).items())
+    title_fallbacks = TEN_Q_SECTION_TITLES if is_ten_q else TEN_K_SECTION_TITLES
+    document = getattr(report, "document", None)
+    document_sections = getattr(document, "sections", None)
+    section_items = getattr(document_sections, "items", None)
+    if not callable(section_items):
+        return []
 
     sections = []
-    seen: set[str] = set()
-    for item, fallback_title in candidates:
-        section_obj = get_report_section(report, item)
+    for item, section_obj in section_items():
+        kind = str(getattr(section_obj, "kind", "item") or "item").lower()
+        if kind not in {"item", "named"}:
+            continue
         text = section_text(section_obj)
         if not text:
             continue
 
-        normalized_item = normalize_item(item, section_obj, include_part=is_ten_q)
-        if normalized_item in seen:
-            continue
-        seen.add(normalized_item)
+        fallback_item = str(item)
+        normalized_item = (
+            named_section_item(section_obj, fallback_item)
+            if kind == "named"
+            else normalize_item(fallback_item, section_obj, include_part=is_ten_q)
+        )
 
         sections.append(
             FilingSection(
                 item=normalized_item,
-                title=section_title(section_obj, fallback_title),
+                title=section_title(
+                    section_obj,
+                    normalized_item if kind == "named" else title_fallbacks.get(normalized_item, fallback_item),
+                ),
                 text=text,
                 pageNumber=section_page_number(section_obj),
             )
         )
 
     return sections
+
+
+def extract_named_sections(report: Any) -> list[FilingSection]:
+    document = getattr(report, "document", None)
+    headings = getattr(document, "headings", None)
+    document_text = section_text(document)
+    if not document_text:
+        return []
+
+    detected_items = {
+        item
+        for heading in headings or []
+        if (item := named_heading_item(section_text(heading))) is not None
+    }
+    extracted = extract_named_sections_from_text(document_text)
+    if not detected_items:
+        return extracted
+    return [section for section in extracted if section.item in detected_items]
+
+
+def extract_named_sections_from_text(document_text: str) -> list[FilingSection]:
+    sections = []
+    for item, pattern in NAMED_SECTION_PATTERNS:
+        match = re.search(pattern.pattern, document_text, re.IGNORECASE | re.MULTILINE)
+        if match is None:
+            continue
+        end_match = NAMED_SECTION_FALLBACK_END.search(document_text, match.end())
+        end = end_match.start() if end_match else min(len(document_text), match.start() + 20_000)
+        text = clean_text(document_text[match.start():end])
+        if text:
+            sections.append(FilingSection(item=item, title=item, text=text))
+    return sections
+
+
+def named_heading_item(heading: str) -> Optional[str]:
+    for item, pattern in NAMED_SECTION_PATTERNS:
+        if pattern.search(heading):
+            return item
+    return None
+
+
+def named_section_item(section: Any, fallback_item: str) -> str:
+    title = section_title(section, fallback_item)
+    matched = named_heading_item(title)
+    if matched:
+        return matched
+    if "signature" in title.casefold():
+        return "Signatures"
+    return title
+
+
+def dedupe_sections(sections: list[FilingSection]) -> list[FilingSection]:
+    deduped = []
+    seen_items: set[str] = set()
+    for section in sections:
+        item_key = section.item.casefold()
+        if item_key in seen_items:
+            continue
+
+        overlap_index = next(
+            (
+                index
+                for index, existing in enumerate(deduped)
+                if text_prefix_overlap(section.text, existing.text)
+            ),
+            None,
+        )
+        if overlap_index is None:
+            deduped.append(section)
+            seen_items.add(item_key)
+            continue
+
+        existing = deduped[overlap_index]
+        if is_item_section(section) and not is_item_section(existing):
+            seen_items.remove(existing.item.casefold())
+            deduped[overlap_index] = section
+            seen_items.add(item_key)
+    return deduped
+
+
+def text_prefix_overlap(left: str, right: str) -> bool:
+    normalized_left = clean_text(left).casefold()
+    normalized_right = clean_text(right).casefold()
+    return normalized_left.startswith(normalized_right) or normalized_right.startswith(normalized_left)
+
+
+def is_item_section(section: FilingSection) -> bool:
+    return section.item.casefold().startswith(("item ", "part "))
 
 
 def get_report_section(report: Any, item: str) -> Any:

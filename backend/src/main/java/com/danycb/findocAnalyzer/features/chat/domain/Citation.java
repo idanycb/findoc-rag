@@ -8,7 +8,7 @@ public record Citation(
         LocalDate filingDate,
         String sectionItem,
         String title,
-        int page,
+        Integer page,
         String excerpt
 ) {
 }

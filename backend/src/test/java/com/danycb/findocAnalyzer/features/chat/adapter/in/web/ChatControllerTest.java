@@ -72,6 +72,8 @@ class ChatControllerTest {
                         .content("{\"question\":\"How did revenue change?\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.answer").value("Revenue grew 8%."))
+                .andExpect(jsonPath("$.citations[0].number").value(1))
+                .andExpect(jsonPath("$.citations[0].embeddingId").doesNotExist())
                 .andExpect(jsonPath("$.citations[0].accessionNumber").value("0000320193-25-000020"))
                 .andExpect(jsonPath("$.citations[0].formType").value("10-Q/A"))
                 .andExpect(jsonPath("$.citations[0].sectionItem").value("Part I Item 2"));

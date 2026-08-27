@@ -2,6 +2,7 @@ package com.danycb.findocAnalyzer.features.vault.adapter.out.vector;
 
 import com.danycb.findocAnalyzer.features.vault.application.out.VectorIndexPort;
 import com.danycb.findocAnalyzer.features.vault.domain.Document;
+import com.danycb.findocAnalyzer.features.vault.domain.DocumentSource;
 import com.danycb.findocAnalyzer.features.vault.domain.ParsedSection;
 import dev.langchain4j.data.document.DocumentSplitter;
 import dev.langchain4j.data.document.Metadata;
@@ -19,11 +20,14 @@ import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Component
 public class PgVectorIndexAdapter implements VectorIndexPort {
@@ -63,10 +67,16 @@ public class PgVectorIndexAdapter implements VectorIndexPort {
             if (section.text() == null || section.text().isBlank()) {
                 continue;
             }
+            if (sourceDocument.getSource() == DocumentSource.EDGAR
+                    && (section.item() == null || section.item().isBlank())) {
+                throw new IllegalArgumentException("EDGAR sections require a stable section item");
+            }
 
             String sectionText = section.text();
             Metadata sectionMetadata = new Metadata(baseMetadata);
-            sectionMetadata.put("page", section.pageNumber());
+            if (section.pageNumber() != null) {
+                sectionMetadata.put("page", section.pageNumber());
+            }
             sectionMetadata.put("section_text", sectionText);
             if (section.item() != null && !section.item().isBlank()) {
                 sectionMetadata.put("section_item", section.item());
@@ -80,15 +90,20 @@ public class PgVectorIndexAdapter implements VectorIndexPort {
             if (sectionText.length() <= EMBEDDING_SAFE_CHAR_LIMIT) {
                 Metadata metadata = new Metadata(baseMetadataMap);
                 metadata.put("chunk_index", 0);
+                metadata.put("chunk_start", 0);
                 segments.add(new TextSegment(sectionText, metadata));
             } else {
                 dev.langchain4j.data.document.Document document =
                         dev.langchain4j.data.document.Document.from(sectionText);
                 List<TextSegment> children = splitter.split(document);
                 int chunkIndex = 0;
+                int previousStart = -1;
                 for (TextSegment child : children) {
                     Metadata metadata = new Metadata(baseMetadataMap);
                     metadata.put("chunk_index", chunkIndex++);
+                    int chunkStart = childStart(sectionText, child.text(), previousStart);
+                    metadata.put("chunk_start", chunkStart);
+                    previousStart = chunkStart;
                     segments.add(new TextSegment(child.text(), metadata));
                 }
             }
@@ -100,6 +115,39 @@ public class PgVectorIndexAdapter implements VectorIndexPort {
         List<dev.langchain4j.data.embedding.Embedding> embeddings =
                 embeddingModel.embedAll(segments).content();
         vectorPersistence.replaceDocument(embeddings, segments, sourceDocument);
+    }
+
+    private int childStart(String sectionText, String childText, int previousStart) {
+        int start = sectionText.indexOf(childText, Math.max(0, previousStart + 1));
+        if (start >= 0) {
+            return start;
+        }
+        start = sectionText.indexOf(childText);
+        if (start >= 0) {
+            return start;
+        }
+        start = whitespaceFlexibleStart(sectionText, childText, Math.max(0, previousStart + 1));
+        if (start >= 0) {
+            return start;
+        }
+        start = whitespaceFlexibleStart(sectionText, childText, 0);
+        if (start >= 0) {
+            return start;
+        }
+        throw new IllegalStateException("Could not locate generated chunk in its parent section: "
+                + childText.substring(0, Math.min(160, childText.length())).replace('\n', ' '));
+    }
+
+    private int whitespaceFlexibleStart(String sectionText, String childText, int fromIndex) {
+        String[] tokens = childText.strip().split("(?U)\\s+");
+        if (tokens.length == 0) {
+            return -1;
+        }
+        String expression = java.util.Arrays.stream(tokens)
+                .map(Pattern::quote)
+                .collect(java.util.stream.Collectors.joining("\\s+"));
+        Matcher matcher = Pattern.compile(expression, Pattern.UNICODE_CHARACTER_CLASS).matcher(sectionText);
+        return matcher.find(fromIndex) ? matcher.start() : -1;
     }
 
     private String originalAccession(Document document) {
@@ -232,10 +280,10 @@ public class PgVectorIndexAdapter implements VectorIndexPort {
                                 List<TextSegment> segments) throws SQLException {
             String sql = """
                     INSERT INTO document_embeddings
-                        (embedding_id, document_id, team_id, file_name, page, chunk_index, text, embedding,
+                        (embedding_id, document_id, team_id, file_name, page, chunk_index, chunk_start, text, embedding,
                          section_text, section_title, section_item, accession_number,
                          original_accession_number, form_type, filing_date, effective)
-                    VALUES (?, ?::uuid, ?::uuid, ?, ?, ?, ?, ?::vector, ?, ?, ?, ?, ?, ?, ?, ?)
+                    VALUES (?, ?::uuid, ?::uuid, ?, ?, ?, ?, ?, ?::vector, ?, ?, ?, ?, ?, ?, ?, ?)
                     """;
             try (PreparedStatement statement = connection.prepareStatement(sql)) {
                 for (int index = 0; index < segments.size(); index++) {
@@ -245,18 +293,19 @@ public class PgVectorIndexAdapter implements VectorIndexPort {
                     statement.setString(2, metadata.getString("document_id"));
                     statement.setString(3, metadata.getString("team_id"));
                     statement.setString(4, metadata.getString("file_name"));
-                    statement.setInt(5, metadata.getInteger("page"));
+                    statement.setObject(5, metadata.getInteger("page"), Types.INTEGER);
                     statement.setInt(6, metadata.getInteger("chunk_index"));
-                    statement.setString(7, segment.text());
-                    statement.setString(8, vectorLiteral(embeddings.get(index).vector()));
-                    statement.setString(9, metadata.getString("section_text"));
-                    statement.setString(10, metadata.getString("section_title"));
-                    statement.setString(11, metadata.getString("section_item"));
-                    statement.setString(12, metadata.getString("accession_number"));
-                    statement.setString(13, metadata.getString("original_accession_number"));
-                    statement.setString(14, metadata.getString("form_type"));
-                    statement.setString(15, metadata.getString("filing_date"));
-                    statement.setString(16,
+                    statement.setInt(7, metadata.getInteger("chunk_start"));
+                    statement.setString(8, segment.text());
+                    statement.setString(9, vectorLiteral(embeddings.get(index).vector()));
+                    statement.setString(10, metadata.getString("section_text"));
+                    statement.setString(11, metadata.getString("section_title"));
+                    statement.setString(12, metadata.getString("section_item"));
+                    statement.setString(13, metadata.getString("accession_number"));
+                    statement.setString(14, metadata.getString("original_accession_number"));
+                    statement.setString(15, metadata.getString("form_type"));
+                    statement.setString(16, metadata.getString("filing_date"));
+                    statement.setString(17,
                             metadata.getString("original_accession_number") == null
                                     || metadata.getString("section_item") == null
                                     ? "true" : "false");

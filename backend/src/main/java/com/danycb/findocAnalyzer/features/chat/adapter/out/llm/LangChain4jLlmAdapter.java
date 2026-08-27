@@ -2,6 +2,7 @@ package com.danycb.findocAnalyzer.features.chat.adapter.out.llm;
 
 import com.danycb.findocAnalyzer.features.chat.application.AiAnalysisException;
 import com.danycb.findocAnalyzer.features.chat.application.out.LlmPort;
+import com.danycb.findocAnalyzer.features.chat.domain.GroundedAnswer;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -37,7 +38,7 @@ public class LangChain4jLlmAdapter implements LlmPort {
     }
 
     @Override
-    public String answerWithContext(String context, String question) {
+    public GroundedAnswer answerWithContext(String context, String question) {
         try {
             return aiService.answerWithContext(context, question);
         } catch (Exception e) {

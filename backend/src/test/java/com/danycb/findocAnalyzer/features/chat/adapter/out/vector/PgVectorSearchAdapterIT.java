@@ -48,7 +48,8 @@ class PgVectorSearchAdapterIT {
     private static EmbeddingStore<TextSegment> store;
     private static final KeywordEmbeddingModel MODEL = new KeywordEmbeddingModel();
 
-    private final PgVectorSearchAdapter adapter = new PgVectorSearchAdapter(MODEL, store);
+    private final PgVectorSearchAdapter adapter = new PgVectorSearchAdapter(
+            MODEL, store, new RetrievalProperties());
 
     @BeforeAll
     static void migrate() {
@@ -76,7 +77,7 @@ class PgVectorSearchAdapterIT {
         ingest(teamA, "ALPHA revenue for team A");
         ingest(teamB, "ALPHA revenue for team B");
 
-        List<RetrievedChunk> results = adapter.search("ALPHA", teamA);
+        List<RetrievedChunk> results = adapter.search("ALPHA", teamA).selected();
 
         assertThat(results).extracting(RetrievedChunk::text)
                 .containsExactly("ALPHA revenue for team A");
@@ -88,7 +89,7 @@ class PgVectorSearchAdapterIT {
         ingest(team, "ALPHA relevant chunk");
         ingest(team, "BETA unrelated chunk");
 
-        List<RetrievedChunk> results = adapter.search("ALPHA", team);
+        List<RetrievedChunk> results = adapter.search("ALPHA", team).selected();
 
         assertThat(results).extracting(RetrievedChunk::text).containsExactly("ALPHA relevant chunk");
     }
@@ -99,7 +100,7 @@ class PgVectorSearchAdapterIT {
         ingest(team, "ALPHA duplicated text");
         ingest(team, "ALPHA duplicated text");
 
-        List<RetrievedChunk> results = adapter.search("ALPHA", team);
+        List<RetrievedChunk> results = adapter.search("ALPHA", team).selected();
 
         assertThat(results).hasSize(1);
         assertThat(results.getFirst().text()).isEqualTo("ALPHA duplicated text");
@@ -112,7 +113,7 @@ class PgVectorSearchAdapterIT {
             ingest(team, "ALPHA chunk number " + i);
         }
 
-        List<RetrievedChunk> results = adapter.search("ALPHA", team);
+        List<RetrievedChunk> results = adapter.search("ALPHA", team).selected();
 
         assertThat(results).hasSize(6);
     }
@@ -123,7 +124,7 @@ class PgVectorSearchAdapterIT {
         ingest(team, "ALPHA original risks", false, "original-accession", "10-K", "2024-11-01");
         ingest(team, "ALPHA amended risks", true, "amendment-accession", "10-K/A", "2025-01-02");
 
-        List<RetrievedChunk> results = adapter.search("ALPHA", team);
+        List<RetrievedChunk> results = adapter.search("ALPHA", team).selected();
 
         assertThat(results).singleElement().satisfies(chunk -> {
             assertThat(chunk.text()).isEqualTo("ALPHA amended risks");

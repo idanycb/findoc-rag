@@ -109,10 +109,7 @@ public class EdgarFilingSectionsAdapter implements FilingSectionsPort {
             String item,
             String title,
             String text,
-            @JsonProperty("pageNumber") Integer pageNumberValue
+            @JsonProperty("pageNumber") Integer pageNumber
     ) {
-        public int pageNumber() {
-            return pageNumberValue == null || pageNumberValue < 1 ? 1 : pageNumberValue;
-        }
     }
 }

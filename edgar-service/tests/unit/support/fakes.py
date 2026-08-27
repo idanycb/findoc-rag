@@ -56,10 +56,19 @@ class FakeFilings:
 
 
 class FakeSection:
-    def __init__(self, item, title, text, part=None):
+    def __init__(self, item, title, text, part=None, kind="item"):
         self.item = item
         self.title = title
         self.part = part
+        self.kind = kind
+        self._text = text
+
+    def text(self):
+        return self._text
+
+
+class FakeHeading:
+    def __init__(self, text):
         self._text = text
 
     def text(self):
@@ -67,7 +76,7 @@ class FakeSection:
 
 
 class FakeReport:
-    def __init__(self, form="10-K", sections=None):
+    def __init__(self, form="10-K", sections=None, headings=None, text=None):
         if sections is None:
             sections = {
                 "Item 1": FakeSection("1", "Item 1. Business", "Business overview"),
@@ -75,7 +84,15 @@ class FakeReport:
                 "Item 7": FakeSection("7", "Item 7. MD&A", "Management discussion"),
             }
         self.form = form
-        self.document = type("Document", (), {"sections": sections})()
+        self.document = type(
+            "Document",
+            (),
+            {
+                "sections": sections,
+                "headings": [FakeHeading(heading) for heading in (headings or [])],
+                "text": lambda _: text or "",
+            },
+        )()
 
 
 class FakeCompany:

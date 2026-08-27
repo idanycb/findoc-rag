@@ -1,6 +1,7 @@
 package com.danycb.findocAnalyzer.features.chat.adapter.out.vector;
 
 import com.danycb.findocAnalyzer.features.chat.domain.RetrievedChunk;
+import com.danycb.findocAnalyzer.features.chat.domain.RetrievalCandidate;
 import dev.langchain4j.data.document.Metadata;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
@@ -29,7 +30,8 @@ class PgVectorSearchAdapterTest {
 
     private final StubEmbeddingModel embeddingModel = new StubEmbeddingModel();
     private final StubEmbeddingStore embeddingStore = new StubEmbeddingStore();
-    private final PgVectorSearchAdapter adapter = new PgVectorSearchAdapter(embeddingModel, embeddingStore);
+    private final PgVectorSearchAdapter adapter = new PgVectorSearchAdapter(
+            embeddingModel, embeddingStore, new RetrievalProperties());
 
     private final UUID teamId = UUID.randomUUID();
 
@@ -37,7 +39,7 @@ class PgVectorSearchAdapterTest {
     void mapsMatchMetadataToRetrievedChunk() {
         embeddingStore.result = matches(match("id-1", "Item 1. Business", 3, "The full section text.", "chunk text"));
 
-        List<RetrievedChunk> chunks = adapter.search("what is the business?", teamId);
+        List<RetrievedChunk> chunks = adapter.search("what is the business?", teamId).selected();
 
         assertThat(chunks).singleElement().satisfies(chunk -> {
             assertThat(chunk.embeddingId()).isEqualTo("id-1");
@@ -49,17 +51,45 @@ class PgVectorSearchAdapterTest {
             assertThat(chunk.formType()).isEqualTo("10-K/A");
             assertThat(chunk.filingDate()).isEqualTo(LocalDate.of(2025, 1, 2));
             assertThat(chunk.sectionItem()).isEqualTo("Item 1");
+            assertThat(chunk.score()).isEqualTo(0.9);
         });
+    }
+
+    @Test
+    void traceKeepsDiscardedCandidatesAndReasons() {
+        embeddingStore.result = matches(
+                match("id-1", "A", 1, "body", "same body"),
+                matchWithScore("id-2", "B", 2, "same body", 0.8),
+                matchWithScore("id-3", "C", 3, "below", 0.5));
+
+        var outcome = adapter.search("q", teamId);
+
+        assertThat(outcome.selected()).hasSize(1);
+        assertThat(outcome.candidates()).extracting(RetrievalCandidate::discardReason)
+                .containsExactly(null, RetrievalCandidate.DiscardReason.DUPLICATE_TEXT,
+                        RetrievalCandidate.DiscardReason.BELOW_THRESHOLD);
     }
 
     @Test
     void fallsBackToSegmentTextWhenSectionTextMetadataMissing() {
         embeddingStore.result = matches(match("id-1", "Risk", 4, null, "segment body only"));
 
-        List<RetrievedChunk> chunks = adapter.search("risks", teamId);
+        List<RetrievedChunk> chunks = adapter.search("risks", teamId).selected();
 
         assertThat(chunks).singleElement().satisfies(chunk ->
                 assertThat(chunk.text()).isEqualTo("segment body only"));
+    }
+
+    @Test
+    void expandsAChildChunkWithBoundedParentContext() {
+        String parent = "P".repeat(1_200) + "answering evidence" + "S".repeat(500);
+        embeddingStore.result = matches(matchWithParent("id-1", "Note", "Explanatory Note",
+                1, parent, 1_200, "answering evidence", 0.9));
+
+        RetrievedChunk chunk = adapter.search("q", teamId).selected().getFirst();
+
+        assertThat(chunk.chunkStart()).isEqualTo(300);
+        assertThat(chunk.text()).isEqualTo(parent.substring(300, 1_518));
     }
 
     @Test
@@ -68,7 +98,7 @@ class PgVectorSearchAdapterTest {
                 match("id-1", "A", 1, "full A", "same body"),
                 match("id-2", "B", 2, "full B", "same body"));
 
-        List<RetrievedChunk> chunks = adapter.search("q", teamId);
+        List<RetrievedChunk> chunks = adapter.search("q", teamId).selected();
 
         assertThat(chunks).singleElement().satisfies(chunk -> {
             assertThat(chunk.embeddingId()).isEqualTo("id-1"); // first wins
@@ -80,13 +110,28 @@ class PgVectorSearchAdapterTest {
     void limitsResultsToMaxSections() {
         List<EmbeddingMatch<TextSegment>> many = new ArrayList<>();
         for (int i = 0; i < 10; i++) {
-            many.add(match("id-" + i, "Title " + i, i + 1, "body " + i, "seg " + i));
+            many.add(matchWithSection("id-" + i, "Title " + i, "Item " + i, i + 1, "seg " + i, 0.9));
         }
         embeddingStore.result = new EmbeddingSearchResult<>(many);
 
-        List<RetrievedChunk> chunks = adapter.search("q", teamId);
+        List<RetrievedChunk> chunks = adapter.search("q", teamId).selected();
 
         assertThat(chunks).hasSize(6); // MAX_SECTIONS
+    }
+
+    @Test
+    void selectsAtMostOneChunkPerSection() {
+        embeddingStore.result = matches(
+                matchWithSection("id-1", "Risks", "Item 1A", 1, "first risk chunk", 0.9),
+                matchWithSection("id-2", "Risks", "Item 1A", 1, "second risk chunk", 0.8),
+                matchWithSection("id-3", "Business", "Item 1", 1, "business chunk", 0.7));
+
+        var outcome = adapter.search("q", teamId);
+
+        assertThat(outcome.selected()).extracting(RetrievedChunk::sectionItem)
+                .containsExactly("Item 1A", "Item 1");
+        assertThat(outcome.candidates()).extracting(RetrievalCandidate::discardReason)
+                .containsExactly(null, RetrievalCandidate.DiscardReason.DUPLICATE_SECTION, null);
     }
 
     @Test
@@ -99,7 +144,7 @@ class PgVectorSearchAdapterTest {
         assertThat(request).isNotNull();
         assertThat(request.filter()).as("results must be scoped to the caller's team").isNotNull();
         assertThat(request.maxResults()).isEqualTo(15);
-        assertThat(request.minScore()).isEqualTo(0.60);
+        assertThat(request.minScore()).isZero();
         assertThat(request.queryEmbedding()).isNotNull();
     }
 
@@ -107,7 +152,7 @@ class PgVectorSearchAdapterTest {
     void emptyStoreResultYieldsNoChunks() {
         embeddingStore.result = new EmbeddingSearchResult<>(List.of());
 
-        assertThat(adapter.search("q", teamId)).isEmpty();
+        assertThat(adapter.search("q", teamId).selected()).isEmpty();
     }
 
     // ---- helpers & fakes --------------------------------------------------------------------
@@ -122,10 +167,26 @@ class PgVectorSearchAdapterTest {
 
     private EmbeddingMatch<TextSegment> match(String id, String title, int page,
                                               String sectionText, String segmentText) {
+        return matchWithParent(id, title, "Item 1", page, sectionText, null, segmentText, 0.9);
+    }
+
+    private EmbeddingMatch<TextSegment> matchWithScore(String id, String title, int page,
+                                                       String segmentText, double score) {
+        return matchWithSection(id, title, "Item 1", page, segmentText, score);
+    }
+
+    private EmbeddingMatch<TextSegment> matchWithSection(String id, String title, String sectionItem, int page,
+                                                         String segmentText, double score) {
+        return matchWithParent(id, title, sectionItem, page, null, null, segmentText, score);
+    }
+
+    private EmbeddingMatch<TextSegment> matchWithParent(String id, String title, String sectionItem, int page,
+                                                        String sectionText, Integer chunkStart,
+                                                        String segmentText, double score) {
         Metadata metadata = new Metadata();
         metadata.put("file_name", "10k.pdf");
         metadata.put("section_title", title);
-        metadata.put("section_item", "Item 1");
+        metadata.put("section_item", sectionItem);
         metadata.put("page", page);
         metadata.put("accession_number", "0000320193-25-000020");
         metadata.put("form_type", "10-K/A");
@@ -134,8 +195,11 @@ class PgVectorSearchAdapterTest {
         if (sectionText != null) {
             metadata.put("section_text", sectionText);
         }
+        if (chunkStart != null) {
+            metadata.put("chunk_start", chunkStart);
+        }
         TextSegment segment = new TextSegment(segmentText, metadata);
-        return new EmbeddingMatch<>(0.9, id, new Embedding(new float[]{0.1f, 0.2f}), segment);
+        return new EmbeddingMatch<>(score, id, new Embedding(new float[]{0.1f, 0.2f}), segment);
     }
 
     static class StubEmbeddingModel implements EmbeddingModel {

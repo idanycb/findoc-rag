@@ -1,6 +1,8 @@
 package com.danycb.findocAnalyzer.features.chat.adapter.out.llm;
 
 import com.danycb.findocAnalyzer.features.chat.application.AiAnalysisException;
+import com.danycb.findocAnalyzer.features.chat.domain.ClaimCitation;
+import com.danycb.findocAnalyzer.features.chat.domain.GroundedAnswer;
 import org.junit.jupiter.api.Test;
 
 import java.util.function.Function;
@@ -34,9 +36,11 @@ class LangChain4jLlmAdapterTest {
 
     @Test
     void answerWithContext_passesThroughResult() {
-        aiService.answer = (ctx, q) -> ctx + "|" + q;
+        GroundedAnswer answer = new GroundedAnswer(
+                true, "grounded", java.util.List.of(new ClaimCitation("e1")));
+        aiService.answer = (ctx, q) -> answer;
 
-        assertThat(adapter.answerWithContext("context", "question")).isEqualTo("context|question");
+        assertThat(adapter.answerWithContext("context", "question")).isSameAs(answer);
     }
 
     @Test
@@ -78,7 +82,8 @@ class LangChain4jLlmAdapterTest {
     static class FakeAiService implements LangChain4jAiService {
         Function<String, String> rewrite = q -> "";
         Function<String, String> hypothetical = q -> "";
-        java.util.function.BinaryOperator<String> answer = (ctx, q) -> "";
+        java.util.function.BiFunction<String, String, GroundedAnswer> answer =
+                (ctx, q) -> new GroundedAnswer(false, "", java.util.List.of());
 
         @Override
         public String rewriteForSearch(String question) {
@@ -91,7 +96,7 @@ class LangChain4jLlmAdapterTest {
         }
 
         @Override
-        public String answerWithContext(String context, String question) {
+        public GroundedAnswer answerWithContext(String context, String question) {
             return answer.apply(context, question);
         }
     }

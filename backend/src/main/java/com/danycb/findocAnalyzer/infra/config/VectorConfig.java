@@ -26,6 +26,7 @@ public class VectorConfig {
                 .storageMode(MetadataStorageMode.COLUMN_PER_KEY)
                 .columnDefinitions(Arrays.asList(
                         MetadataColumDefinition.from("chunk_index INT").getFullDefinition(),
+                        MetadataColumDefinition.from("chunk_start INT").getFullDefinition(),
                         MetadataColumDefinition.from("document_id UUID").getFullDefinition(),
                         MetadataColumDefinition.from("team_id UUID").getFullDefinition(),
                         MetadataColumDefinition.from("file_name VARCHAR(255)").getFullDefinition(),

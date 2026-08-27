@@ -43,6 +43,9 @@ class V1InitialSchemaMigrationIT {
             assertThat(migrations.next()).isTrue();
             assertThat(migrations.getString("version")).isEqualTo("2");
             assertThat(migrations.getBoolean("success")).isTrue();
+            assertThat(migrations.next()).isTrue();
+            assertThat(migrations.getString("version")).isEqualTo("3");
+            assertThat(migrations.getBoolean("success")).isTrue();
             assertThat(migrations.next()).isFalse();
         }
 
@@ -79,6 +82,24 @@ class V1InitialSchemaMigrationIT {
                             "document_embeddings.form_type",
                             "document_embeddings.filing_date",
                             "document_embeddings.effective");
+        }
+
+        try (Connection connection = dataSource.getConnection();
+             Statement statement = connection.createStatement();
+             ResultSet provenance = statement.executeQuery("""
+                     SELECT column_name, is_nullable
+                     FROM information_schema.columns
+                     WHERE table_schema = 'public' AND table_name = 'document_embeddings'
+                       AND column_name IN ('page', 'chunk_start')
+                     ORDER BY column_name
+                     """)) {
+            assertThat(provenance.next()).isTrue();
+            assertThat(provenance.getString("column_name")).isEqualTo("chunk_start");
+            assertThat(provenance.getString("is_nullable")).isEqualTo("YES");
+            assertThat(provenance.next()).isTrue();
+            assertThat(provenance.getString("column_name")).isEqualTo("page");
+            assertThat(provenance.getString("is_nullable")).isEqualTo("YES");
+            assertThat(provenance.next()).isFalse();
         }
 
         try (Connection connection = dataSource.getConnection();

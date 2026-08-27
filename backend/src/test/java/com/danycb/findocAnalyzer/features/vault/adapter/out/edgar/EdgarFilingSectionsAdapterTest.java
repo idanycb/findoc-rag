@@ -58,6 +58,16 @@ class EdgarFilingSectionsAdapterTest {
     }
 
     @Test
+    void missingPageProvenanceRemainsUnknown() {
+        responseBody = searchableResponse().replace(",\"pageNumber\":42", "");
+
+        var result = adapter.fetchSections("AAPL", "0000320193-25-000020");
+
+        assertThat(result.sections()).singleElement().satisfies(section ->
+                assertThat(section.pageNumber()).isNull());
+    }
+
+    @Test
     void validAmendmentWithoutSectionsIsSuccessfulAndPreservesRelationship() {
         responseBody = emptyResponse("10-K/A", "0000320193-25-000020", "0000320193-24-000123");
 

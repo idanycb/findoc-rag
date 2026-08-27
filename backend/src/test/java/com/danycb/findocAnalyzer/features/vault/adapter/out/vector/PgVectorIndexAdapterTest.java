@@ -59,6 +59,7 @@ class PgVectorIndexAdapterTest {
         assertThat(segment.metadata().toMap().get("effective")).isEqualTo("true");
         assertThat(segment.metadata().getString("section_text")).isEqualTo("We design and sell products.");
         assertThat(segment.metadata().getInteger("chunk_index")).isZero();
+        assertThat(segment.metadata().getInteger("chunk_start")).isZero();
     }
 
     @Test
@@ -84,6 +85,7 @@ class PgVectorIndexAdapterTest {
         for (int i = 0; i < embeddingStore.addedSegments.size(); i++) {
             TextSegment segment = embeddingStore.addedSegments.get(i);
             assertThat(segment.metadata().getInteger("chunk_index")).isEqualTo(i);
+            assertThat(segment.metadata().getInteger("chunk_start")).isNotNegative();
             assertThat(segment.metadata().getString("section_title")).isEqualTo("Long Section");
             assertThat(segment.metadata().getInteger("page")).isEqualTo(5);
         }
@@ -120,6 +122,22 @@ class PgVectorIndexAdapterTest {
         assertThatThrownBy(() -> adapter.deleteByDocumentId(docId))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("store unavailable");
+    }
+
+    @Test
+    void rejectsEdgarSectionWithoutStableItem() {
+        Document edgar = Document.builder()
+                .id(UUID.randomUUID())
+                .teamId(UUID.randomUUID())
+                .fileName("filing.html")
+                .source(DocumentSource.EDGAR)
+                .accessionNumber("0000000000-25-000001")
+                .build();
+
+        assertThatThrownBy(() -> adapter.ingest(
+                List.of(new ParsedSection(null, null, "Explanatory Note", "amendment purpose")), edgar))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("stable section item");
     }
 
     private Document amendment(String fileName) {

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useTransition } from 'react';
-import { MessageSquare, Send } from 'lucide-react';
+import { ChevronDown, FileText, MessageSquare, Send } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
@@ -14,6 +14,18 @@ import { useRequireRole } from '@/shared/hooks/useRequireRole';
 interface Message {
   role: 'user' | 'assistant';
   content: string;
+  citations?: Citation[];
+}
+
+interface Citation {
+  number: number;
+  accessionNumber: string | null;
+  formType: string | null;
+  filingDate: string | null;
+  sectionItem: string | null;
+  title: string | null;
+  page: number | null;
+  excerpt: string;
 }
 
 const SUGGESTIONS = [
@@ -25,10 +37,40 @@ const SUGGESTIONS = [
 const MAX_QUESTION_LENGTH = 1000;
 const CHAT_ROLES = ['ADMIN', 'MEMBER'] as const;
 
+function citationTitle(citation: Citation) {
+  const section = citation.sectionItem ?? citation.title;
+  return [citation.formType ?? 'Document', section].filter(Boolean).join(' · ');
+}
+
+function filingDate(date: string | null) {
+  if (!date) return null;
+  return new Date(`${date}T00:00:00`).toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}
+
+function linkCitationMarkers(
+  content: string,
+  citations: Citation[],
+  messageIndex: number
+) {
+  const numbers = new Set(citations.map((citation) => citation.number));
+  return content.replace(/\[(\d+)]/g, (marker, value: string) => {
+    const number = Number(value);
+    return numbers.has(number)
+      ? `[${marker}](#citation-${messageIndex}-${number})`
+      : marker;
+  });
+}
+
 export function ChatClient() {
   const { token, claims } = useAuth();
   const { isCheckingAccess } = useRequireRole([...CHAT_ROLES]);
-  const { documents, error: documentsError } = useDocuments({ enabled: !isCheckingAccess });
+  const { documents, error: documentsError } = useDocuments({
+    enabled: !isCheckingAccess,
+  });
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isPending, startTransition] = useTransition();
@@ -47,7 +89,12 @@ export function ChatClient() {
 
   const sendMessage = (question: string) => {
     const normalizedQuestion = question.trim();
-    if (!normalizedQuestion || normalizedQuestion.length > MAX_QUESTION_LENGTH || isPending) return;
+    if (
+      !normalizedQuestion ||
+      normalizedQuestion.length > MAX_QUESTION_LENGTH ||
+      isPending
+    )
+      return;
     setError('');
     const userMsg: Message = { role: 'user', content: normalizedQuestion };
     setMessages((prev) => [...prev, userMsg]);
@@ -55,16 +102,30 @@ export function ChatClient() {
 
     startTransition(async () => {
       try {
-        const data = await apiCall<{ answer: string }>(
+        const data = await apiCall<{ answer: string; citations: Citation[] }>(
           '/chat',
-          { method: 'POST', body: JSON.stringify({ question: normalizedQuestion }) },
+          {
+            method: 'POST',
+            body: JSON.stringify({ question: normalizedQuestion }),
+          },
           token
         );
-        setMessages((prev) => [...prev, { role: 'assistant', content: data.answer }]);
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: 'assistant',
+            content: data.answer,
+            citations: data.citations,
+          },
+        ]);
       } catch (err) {
-        const msg = err instanceof ApiError ? err.message : 'Something went wrong.';
+        const msg =
+          err instanceof ApiError ? err.message : 'Something went wrong.';
         setError(msg);
-        setMessages((prev) => [...prev, { role: 'assistant', content: `Error: ${msg}` }]);
+        setMessages((prev) => [
+          ...prev,
+          { role: 'assistant', content: `Error: ${msg}` },
+        ]);
       }
     });
   };
@@ -84,7 +145,11 @@ export function ChatClient() {
   const showEmpty = messages.length === 0;
 
   if (isCheckingAccess) {
-    return <div className="flex-1 flex items-center justify-center text-[#888888]">Loading…</div>;
+    return (
+      <div className="flex-1 flex items-center justify-center text-[#888888]">
+        Loading…
+      </div>
+    );
   }
 
   return (
@@ -92,7 +157,9 @@ export function ChatClient() {
       {/* Header */}
       <div className="flex items-center justify-between bg-white px-5 py-4 border-b border-[#EBEBEB] md:px-7">
         <div>
-          <h1 className="text-[22px] font-bold tracking-[-.01em] text-[#111111]">RAG Chat</h1>
+          <h1 className="text-[22px] font-bold tracking-[-.01em] text-[#111111]">
+            RAG Chat
+          </h1>
           <p className="mt-0.5 text-[11px] uppercase tracking-[.12em] text-[#AAAAAA]">
             Grounded in your team vault
           </p>
@@ -117,8 +184,8 @@ export function ChatClient() {
             <div>
               <div className="bg-white rounded-[4px_14px_14px_14px] px-4.5 py-3.5 shadow-[0_1px_3px_rgba(0,0,0,.06)]">
                 <p className="text-[14.5px] text-[#333333] leading-[1.65]">
-                  Hi {claims?.sub ?? 'there'} — I can answer questions grounded in your
-                  team&apos;s indexed documents
+                  Hi {claims?.sub ?? 'there'} — I can answer questions grounded
+                  in your team&apos;s indexed documents
                   {indexedCount !== null ? (
                     <>
                       . I have{' '}
@@ -148,7 +215,9 @@ export function ChatClient() {
                 {initials}
               </div>
               <div className="bg-[#111111] rounded-[14px_4px_14px_14px] px-4.25 py-3">
-                <p className="text-[14.5px] text-white leading-[1.6]">{msg.content}</p>
+                <p className="text-[14.5px] text-white leading-[1.6]">
+                  {msg.content}
+                </p>
               </div>
             </div>
           ) : (
@@ -158,11 +227,69 @@ export function ChatClient() {
               </div>
               <div>
                 <div className="bg-white rounded-[4px_14px_14px_14px] px-4.5 py-3.5 shadow-[0_1px_3px_rgba(0,0,0,.06)]">
-                  <div className="prose prose-sm max-w-none text-[#333333] leading-[1.7] [&_strong]:text-[#111111] [&_code]:text-[#111111]">
+                  <div className="prose prose-sm max-w-none text-[#333333] leading-[1.7] [&_strong]:text-[#111111] [&_code]:text-[#111111] [&_a]:font-semibold [&_a]:text-[#2563EB] [&_a]:no-underline hover:[&_a]:underline">
                     <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>
-                      {msg.content}
+                      {linkCitationMarkers(msg.content, msg.citations ?? [], i)}
                     </ReactMarkdown>
                   </div>
+                  {msg.citations && msg.citations.length > 0 && (
+                    <div className="mt-4 border-t border-[#EEEEEE] pt-3">
+                      <p className="mb-2 text-[10.5px] font-semibold uppercase tracking-[.12em] text-[#999999]">
+                        Sources
+                      </p>
+                      <div className="space-y-2">
+                        {msg.citations.map((citation) => (
+                          <details
+                            id={`citation-${i}-${citation.number}`}
+                            key={citation.number}
+                            className="group scroll-mt-24 rounded-lg border border-[#E8E8E8] bg-[#FAFAFA]"
+                          >
+                            <summary className="flex cursor-pointer list-none items-center gap-2.5 px-3 py-2.5">
+                              <span className="flex h-5 w-5 flex-none items-center justify-center rounded-md bg-[#111111] text-[10px] font-bold text-white">
+                                {citation.number}
+                              </span>
+                              <FileText
+                                size={14}
+                                className="flex-none text-[#777777]"
+                              />
+                              <span className="min-w-0 flex-1 truncate text-[12.5px] font-semibold text-[#333333]">
+                                {citationTitle(citation)}
+                              </span>
+                              {citation.formType?.endsWith('/A') && (
+                                <span className="rounded-full bg-[#FFF7ED] px-2 py-0.5 text-[9.5px] font-semibold uppercase tracking-wide text-[#C2410C]">
+                                  Amended
+                                </span>
+                              )}
+                              <ChevronDown
+                                size={14}
+                                className="flex-none text-[#999999] transition-transform group-open:rotate-180"
+                              />
+                            </summary>
+                            <div className="border-t border-[#E8E8E8] px-3 py-3">
+                              <blockquote className="max-h-40 overflow-auto border-l-2 border-[#CCCCCC] pl-3 text-[12.5px] leading-[1.6] text-[#555555]">
+                                {citation.excerpt}
+                              </blockquote>
+                              <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-[10.5px] text-[#888888]">
+                                {filingDate(citation.filingDate) && (
+                                  <span>
+                                    Filed {filingDate(citation.filingDate)}
+                                  </span>
+                                )}
+                                {citation.page !== null && (
+                                  <span>Page {citation.page}</span>
+                                )}
+                                {citation.accessionNumber && (
+                                  <span className="font-mono">
+                                    Accession {citation.accessionNumber}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </details>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <span className="text-[11px] text-[#BBBBBB] mt-1.25 ml-1 block">
                   just now
@@ -178,7 +305,9 @@ export function ChatClient() {
               <MessageSquare size={15} className="text-white" />
             </div>
             <div className="bg-white rounded-[4px_14px_14px_14px] px-4.5 py-3.5 shadow-[0_1px_3px_rgba(0,0,0,.06)]">
-              <span className="text-[14px] text-[#888888] animate-pulse">Thinking…</span>
+              <span className="text-[14px] text-[#888888] animate-pulse">
+                Thinking…
+              </span>
             </div>
           </div>
         )}
@@ -224,7 +353,11 @@ export function ChatClient() {
           />
           <button
             type="submit"
-            disabled={isPending || !input.trim() || input.trim().length > MAX_QUESTION_LENGTH}
+            disabled={
+              isPending ||
+              !input.trim() ||
+              input.trim().length > MAX_QUESTION_LENGTH
+            }
             className="w-9.5 h-9.5 rounded-[10px] bg-[#111111] flex items-center justify-center hover:bg-[#333333] transition-colors disabled:opacity-40 flex-none"
           >
             <Send size={16} className="text-white" />
@@ -232,8 +365,8 @@ export function ChatClient() {
         </form>
 
         <p className="text-center text-[11.5px] text-[#CCCCCC] mt-2.5">
-          Answers are grounded in your team&apos;s indexed documents. Always verify important
-          figures.
+          Answers are grounded in your team&apos;s indexed documents. Always
+          verify important figures.
         </p>
       </div>
     </div>

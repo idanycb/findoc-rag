@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Judgment",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "dimension",
+    "verdict",
+    "confidence",
+    "rationale",
+    "issues"
+  ],
+  "properties": {
+    "dimension": {
+      "type": "string",
+      "enum": [
+        "groundedness",
+        "completeness",
+        "citation-entailment",
+        "refusal"
+      ]
+    },
+    "verdict": {
+      "type": "string",
+      "enum": [
+        "pass",
+        "fail"
+      ]
+    },
+    "confidence": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "rationale": {
+      "type": "string",
+      "minLength": 1
+    },
+    "issues": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

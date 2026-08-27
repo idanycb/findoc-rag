@@ -1,0 +1,2 @@
+{"id":"tsla-2025-unanswerable-page","dimension":"refusal","label":"pass","notes":"Reference label for refusal when page provenance is unavailable."}
+{"id":"tsla-2025-refusal-unknown-page","dimension":"refusal","label":"pass","notes":"Reference label for refusal when EDGAR page provenance is unavailable."}

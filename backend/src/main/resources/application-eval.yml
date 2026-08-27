@@ -1,0 +1,5 @@
+findoc:
+  eval:
+    corpus-directory: ${FINDOC_EVAL_CORPUS_DIRECTORY:../evals/corpus/tesla-2025}
+  retrieval:
+    trace-pool-size: 50

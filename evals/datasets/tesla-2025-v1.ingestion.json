@@ -1,0 +1,33 @@
+{
+  "dataset": "tesla-2025-v1",
+  "corpus": "tesla-2025",
+  "status": "verified",
+  "filings": [
+    {
+      "accessionNumber": "0001628280-25-003063",
+      "form": "10-K",
+      "filingDate": "2025-01-30",
+      "reportDate": "2024-12-31",
+      "amendsAccessionNumber": null,
+      "hasSearchableSections": true,
+      "expectedSections": [
+        "Item 1", "Item 1A", "Item 1B", "Item 2", "Item 3", "Item 4",
+        "Item 5", "Item 6", "Item 7", "Item 7A", "Item 8", "Item 9",
+        "Item 9A", "Item 9B", "Item 9C", "Item 10", "Item 11", "Item 12",
+        "Item 13", "Item 14", "Item 15", "Item 16", "Signatures"
+      ]
+    },
+    {
+      "accessionNumber": "0001104659-25-042659",
+      "form": "10-K/A",
+      "filingDate": "2025-04-30",
+      "reportDate": "2024-12-31",
+      "amendsAccessionNumber": "0001628280-25-003063",
+      "hasSearchableSections": true,
+      "expectedSections": [
+        "Explanatory Note", "Item 10", "Item 11", "Item 12", "Item 13",
+        "Item 14", "Item 15", "Signatures"
+      ]
+    }
+  ]
+}

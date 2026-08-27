@@ -1,0 +1,17 @@
+{
+  "corpus": "tesla-2025",
+  "files": [
+    {
+      "accession": "0001104659-25-042659",
+      "path": "0001104659-25-042659.json",
+      "sha256": "6706de8cb2179dd53b1200a6904cafcb214614a81020fa4d402dc523824d7ae7"
+    },
+    {
+      "accession": "0001628280-25-003063",
+      "path": "0001628280-25-003063.json",
+      "sha256": "6361bcb933fbbe6dec17f7f65059059c3978b02c12cb4b36e1d94a5def8b1125"
+    }
+  ],
+  "manifestSha256": "8d16b047805c71bd41b74161baf9290ae76bb75dee33c7d62d78e7cdae36700d",
+  "ticker": "TSLA"
+}

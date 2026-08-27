@@ -1,10 +1,30 @@
 COMPOSE := docker compose -f docker-compose.yml
+DEV_BUILD_SERVICES := backend edgar-service frontend
+DEV_BUILD_ARGS := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
+DEV_BUILD_SERVICE := $(firstword $(DEV_BUILD_ARGS))
 
-.PHONY: dev dev-down dev-clean prod demo prod-down demo-down prod-clean demo-clean prod-logs demo-logs help
+ifneq ($(filter dev-build,$(firstword $(MAKECMDGOALS))),)
+ifneq ($(DEV_BUILD_SERVICE),)
+ifneq ($(word 2,$(DEV_BUILD_ARGS)),)
+$(error dev-build accepts at most one service: $(DEV_BUILD_SERVICES))
+endif
+ifeq ($(filter $(DEV_BUILD_SERVICE),$(DEV_BUILD_SERVICES)),)
+$(error invalid dev service '$(DEV_BUILD_SERVICE)'; expected one of: $(DEV_BUILD_SERVICES))
+endif
+.PHONY: $(DEV_BUILD_SERVICE)
+$(DEV_BUILD_SERVICE):
+	@:
+endif
+endif
+
+.PHONY: dev dev-build dev-down dev-clean prod demo prod-down demo-down prod-clean demo-clean prod-logs demo-logs help
 
 help:
 	@echo "Targets:"
 	@echo "  make dev        Start local dev dependencies (Postgres + Docling + EDGAR)"
+	@echo "  make dev-build [service]"
+	@echo "                  Build one dev service, or all dev images when omitted"
+	@echo "                  Services: backend, edgar-service, frontend"
 	@echo "  make dev-down   Stop local dev dependencies"
 	@echo "  make dev-clean  Stop local dev dependencies and delete Postgres volume data"
 	@echo "  make prod       Build and run the full production stack"
@@ -18,6 +38,9 @@ help:
 
 dev:
 	$(COMPOSE) -f docker-compose.dev.yml up pgvector docling-serve edgar-service -d
+
+dev-build:
+	$(COMPOSE) -f docker-compose.dev.yml build $(DEV_BUILD_SERVICE)
 
 dev-down:
 	$(COMPOSE) -f docker-compose.dev.yml down

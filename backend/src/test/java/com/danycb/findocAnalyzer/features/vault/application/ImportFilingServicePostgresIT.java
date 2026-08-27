@@ -1,6 +1,7 @@
 package com.danycb.findocAnalyzer.features.vault.application;
 
 import com.danycb.findocAnalyzer.features.vault.adapter.out.persistence.DocumentRepository;
+import com.danycb.findocAnalyzer.features.vault.adapter.out.persistence.AnalysisOutboxRepository;
 import com.danycb.findocAnalyzer.features.vault.application.dto.DocumentAnalysisMessage;
 import com.danycb.findocAnalyzer.features.vault.application.dto.ImportFilingCommand;
 import com.danycb.findocAnalyzer.features.vault.application.out.AnalysisQueuePort;
@@ -45,6 +46,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @Testcontainers(disabledWithoutDocker = true)
 @Import({
         DocumentRepository.class,
+        AnalysisOutboxRepository.class,
         ImportFilingService.class,
         VaultAuditLogger.class,
         ImportFilingServicePostgresIT.TestConfig.class
@@ -68,7 +70,7 @@ class ImportFilingServicePostgresIT {
     private BarrierDocumentRepository barrierRepository;
 
     @Autowired
-    private RecordingQueue queue;
+    private AnalysisOutboxRepository outbox;
 
     @Autowired
     private DataSource dataSource;
@@ -78,12 +80,11 @@ class ImportFilingServicePostgresIT {
 
     @BeforeEach
     void resetTestDoubles() {
-        queue.reset();
         barrierRepository.disarm();
     }
 
     @Test
-    void concurrentPostgresConflictCommitsOneDocumentAndEnqueuesExactlyOnceAfterCommit() throws Exception {
+    void concurrentPostgresConflictCommitsOneDocumentAndOneDurableOutboxRequest() throws Exception {
         UUID teamId = UUID.randomUUID();
         barrierRepository.armForTwoInserts();
 
@@ -99,21 +100,20 @@ class ImportFilingServicePostgresIT {
 
         assertThat(repository.findByTeamIdAndAccessionNumber(teamId, ACCESSION)).isPresent();
         assertThat(repository.findByTeamId(teamId)).hasSize(1);
-        assertThat(queue.messages).singleElement().satisfies(message ->
-                assertThat(message.documentId())
+        assertThat(outbox.claimDue(java.time.Instant.now(), 10, java.time.Duration.ofMinutes(1))).singleElement().satisfies(request ->
+                assertThat(request.message().documentId())
                         .isEqualTo(repository.findByTeamIdAndAccessionNumber(teamId, ACCESSION)
                                 .orElseThrow().getId()));
-        assertThat(queue.documentWasVisibleWhenPublished).containsExactly(true);
     }
 
     @Test
-    void separateServiceInstancesUseOneDatabaseBackedPublicationClaim() throws Exception {
+    void separateServiceInstancesCreateOneDurableOutboxRequest() throws Exception {
         UUID teamId = UUID.randomUUID();
         barrierRepository.armForTwoInserts();
         ImportFilingService firstService = new ImportFilingService(
-                barrierRepository, queue, new VaultAuditLogger());
+                barrierRepository, outbox, new VaultAuditLogger());
         ImportFilingService secondService = new ImportFilingService(
-                barrierRepository, queue, new VaultAuditLogger());
+                barrierRepository, outbox, new VaultAuditLogger());
         TransactionTemplate transactions = new TransactionTemplate(transactionManager);
 
         try (var executor = Executors.newFixedThreadPool(2)) {
@@ -126,32 +126,9 @@ class ImportFilingServicePostgresIT {
         }
 
         assertThat(repository.findByTeamId(teamId)).hasSize(1);
-        assertThat(queue.messages).singleElement().satisfies(message ->
-                assertThat(message.documentId()).isEqualTo(
+        assertThat(outbox.claimDue(java.time.Instant.now(), 10, java.time.Duration.ofMinutes(1))).singleElement().satisfies(request ->
+                assertThat(request.message().documentId()).isEqualTo(
                         repository.findByTeamIdAndAccessionNumber(teamId, ACCESSION).orElseThrow().getId()));
-    }
-
-    @Test
-    @Transactional(propagation = Propagation.NOT_SUPPORTED)
-    void separateServiceRetryReleasesDatabaseClaimAfterSynchronousQueueFailure() {
-        UUID teamId = UUID.randomUUID();
-        ImportFilingService firstService = new ImportFilingService(
-                barrierRepository, queue, new VaultAuditLogger());
-        ImportFilingService retryService = new ImportFilingService(
-                barrierRepository, queue, new VaultAuditLogger());
-        TransactionTemplate transactions = new TransactionTemplate(transactionManager);
-        queue.failNextPublication();
-
-        assertThatThrownBy(() -> transactions.execute(status ->
-                firstService.importFiling(command(), teamId)))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("queue unavailable");
-
-        var retried = transactions.execute(status -> retryService.importFiling(command(), teamId));
-
-        assertThat(repository.findByTeamId(teamId)).hasSize(1);
-        assertThat(queue.messages).singleElement().satisfies(message ->
-                assertThat(message.documentId()).isEqualTo(retried.documentId()));
     }
 
     private ImportFilingCommand command() {
@@ -170,11 +147,6 @@ class ImportFilingServicePostgresIT {
 
     @TestConfiguration
     static class TestConfig {
-        @Bean
-        RecordingQueue recordingQueue(DataSource dataSource) {
-            return new RecordingQueue(dataSource);
-        }
-
         @Bean
         @Primary
         BarrierDocumentRepository barrierDocumentRepository(DocumentRepository delegate) {
@@ -252,16 +224,6 @@ class ImportFilingServicePostgresIT {
                 }
             }
             return delegate.insertOrGet(document);
-        }
-
-        @Override
-        public boolean claimAnalysisPublication(UUID documentId) {
-            return delegate.claimAnalysisPublication(documentId);
-        }
-
-        @Override
-        public void releaseAnalysisPublication(UUID documentId) {
-            delegate.releaseAnalysisPublication(documentId);
         }
 
         @Override

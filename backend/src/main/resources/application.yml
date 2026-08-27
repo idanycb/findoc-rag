@@ -64,6 +64,21 @@ docling:
 edgar:
   url: ${EDGAR_SERVICE_URL:http://localhost:8100}
 
+findoc:
+  analysis-outbox:
+    poll-interval: ${ANALYSIS_OUTBOX_POLL_INTERVAL:PT1M}
+    batch-size: ${ANALYSIS_OUTBOX_BATCH_SIZE:25}
+    lease-duration: ${ANALYSIS_OUTBOX_LEASE_DURATION:PT1M}
+    retry-delay: ${ANALYSIS_OUTBOX_RETRY_DELAY:PT30S}
+    max-retry-delay: ${ANALYSIS_OUTBOX_MAX_RETRY_DELAY:PT15M}
+    processing-lease: ${ANALYSIS_OUTBOX_PROCESSING_LEASE:PT30M}
+    stuck-after: ${ANALYSIS_OUTBOX_STUCK_AFTER:PT15M}
+    status-interval: ${ANALYSIS_OUTBOX_STATUS_INTERVAL:PT5M}
+    retention: ${ANALYSIS_OUTBOX_RETENTION:P30D}
+    cleanup-interval: ${ANALYSIS_OUTBOX_CLEANUP_INTERVAL:PT24H}
+    cleanup-batch-size: ${ANALYSIS_OUTBOX_CLEANUP_BATCH_SIZE:500}
+    status-detail-limit: ${ANALYSIS_OUTBOX_STATUS_DETAIL_LIMIT:20}
+
 logging:
   level:
     org.springframework:web: INFO

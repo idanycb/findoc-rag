@@ -2,9 +2,10 @@ package com.danycb.findocAnalyzer.features.vault.adapter.in.messaging;
 
 import com.danycb.findocAnalyzer.features.vault.application.dto.DocumentAnalysisMessage;
 import com.danycb.findocAnalyzer.features.vault.application.in.AnalyzeDocumentUseCase;
+import com.danycb.findocAnalyzer.features.vault.application.out.AnalysisRequestReceiptPort;
 import io.awspring.cloud.sqs.annotation.SqsListener;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import software.amazon.awssdk.eventnotifications.s3.model.S3EventNotification;
 import software.amazon.awssdk.eventnotifications.s3.model.S3EventNotificationRecord;
@@ -13,14 +14,32 @@ import tools.jackson.databind.ObjectMapper;
 
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.UUID;
 
 @Slf4j
 @Component
-@RequiredArgsConstructor
 public class S3UploadEventListener {
 
     private final AnalyzeDocumentUseCase analyzeDocumentUseCase;
+    private final AnalysisRequestReceiptPort receipts;
     private final ObjectMapper objectMapper;
+    private final Duration processingLease;
+
+    public S3UploadEventListener(
+            AnalyzeDocumentUseCase analyzeDocumentUseCase,
+            AnalysisRequestReceiptPort receipts,
+            ObjectMapper objectMapper,
+            @Value("${findoc.analysis-outbox.processing-lease:PT30M}") Duration processingLease) {
+        if (processingLease == null || processingLease.isZero() || processingLease.isNegative()) {
+            throw new IllegalArgumentException("analysis processing lease must be positive");
+        }
+        this.analyzeDocumentUseCase = analyzeDocumentUseCase;
+        this.receipts = receipts;
+        this.objectMapper = objectMapper;
+        this.processingLease = processingLease;
+    }
 
     @SqsListener(value = "${AWS_SQS_QUEUE_NAME}")
     void onMessage(String messageJson) {
@@ -28,16 +47,53 @@ public class S3UploadEventListener {
         if (message == null) {
             return;
         }
-        log.info("event=document_analysis_message_received documentId={}", message.documentId());
+        AnalysisRequestReceiptPort.ProcessingClaim processingClaim = claim(message);
+        if (message.requestId() != null && processingClaim == null) {
+            log.info("event=document_analysis_message_skipped reason=duplicate_request requestId={} documentId={}",
+                    message.requestId(), message.documentId());
+            return;
+        }
+        log.info("event=document_analysis_message_received requestId={} documentId={}",
+                message.requestId(), message.documentId());
 
         try {
             analyzeDocumentUseCase.analyze(message.documentId(), message.objectKey());
+            if (processingClaim != null) {
+                receipts.markProcessed(
+                        processingClaim.requestId(), processingClaim.claimToken(), Instant.now());
+            }
         } catch (Exception e) {
+            if (processingClaim != null) {
+                try {
+                    receipts.release(
+                            processingClaim.requestId(), processingClaim.claimToken(), conciseError(e));
+                } catch (RuntimeException releaseFailure) {
+                    e.addSuppressed(releaseFailure);
+                }
+            }
             log.error(
-                    "event=document_analysis_message_failed documentId={} exception={} reason={}",
-                    message.documentId(), e.getClass().getSimpleName(), e.getMessage(), e);
+                    "event=document_analysis_message_failed requestId={} documentId={} exception={} reason={}",
+                    message.requestId(), message.documentId(),
+                    e.getClass().getSimpleName(), e.getMessage(), e);
             throw new RuntimeException("Re-queuing message for retry", e);
         }
+    }
+
+    private AnalysisRequestReceiptPort.ProcessingClaim claim(DocumentAnalysisMessage message) {
+        UUID requestId = message.requestId();
+        if (requestId == null) {
+            return null;
+        }
+        return receipts.claim(requestId, message.documentId(), Instant.now(), processingLease)
+                .orElse(null);
+    }
+
+    private String conciseError(Exception failure) {
+        String message = failure.getMessage();
+        String error = message == null || message.isBlank()
+                ? failure.getClass().getSimpleName()
+                : failure.getClass().getSimpleName() + ": " + message;
+        return error.substring(0, Math.min(error.length(), 1000));
     }
 
     private DocumentAnalysisMessage normalize(String messageJson) {
@@ -75,6 +131,6 @@ public class S3UploadEventListener {
 
         String decodedKey = URLDecoder.decode(s3Key, StandardCharsets.UTF_8);
         S3ObjectKeyParser.KeyParts parts = S3ObjectKeyParser.parse(decodedKey);
-        return new DocumentAnalysisMessage(parts.docId(), decodedKey);
+        return new DocumentAnalysisMessage(null, parts.docId(), decodedKey);
     }
 }

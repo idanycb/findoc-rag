@@ -2,7 +2,7 @@ package com.danycb.findocAnalyzer.features.vault.application;
 
 import com.danycb.findocAnalyzer.features.vault.application.dto.DocumentAnalysisMessage;
 import com.danycb.findocAnalyzer.features.vault.application.dto.ImportFilingCommand;
-import com.danycb.findocAnalyzer.features.vault.application.out.AnalysisQueuePort;
+import com.danycb.findocAnalyzer.features.vault.application.out.AnalysisOutboxPort;
 import com.danycb.findocAnalyzer.features.vault.application.out.DocumentRepositoryPort;
 import com.danycb.findocAnalyzer.features.vault.domain.AmendmentLinkStatus;
 import com.danycb.findocAnalyzer.features.vault.domain.Document;
@@ -10,9 +10,10 @@ import com.danycb.findocAnalyzer.features.vault.domain.DocumentSource;
 import com.danycb.findocAnalyzer.features.vault.domain.DocumentStatus;
 import org.junit.jupiter.api.Test;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.LocalDate;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -20,7 +21,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -35,11 +35,11 @@ class ImportFilingServiceTest {
     private static final String AMENDMENT_TWO = "0000320193-25-000021";
 
     private final FakeDocumentRepository repository = new FakeDocumentRepository();
-    private final RecordingQueue queue = new RecordingQueue();
-    private final ImportFilingService service = new ImportFilingService(repository, queue, new VaultAuditLogger());
+    private final RecordingOutbox outbox = new RecordingOutbox();
+    private final ImportFilingService service = new ImportFilingService(repository, outbox, new VaultAuditLogger());
 
     @Test
-    void importsOriginalWithDerivedFormMetadataAndQueuesOnce() {
+    void importsOriginalWithDerivedFormMetadataAndRecordsOneAnalysisRequest() {
         UUID teamId = UUID.randomUUID();
 
         var result = service.importFiling(original(), teamId);
@@ -52,14 +52,14 @@ class ImportFilingServiceTest {
         assertThat(saved.getBaseFormType()).isEqualTo("10-K");
         assertThat(saved.isAmendment()).isFalse();
         assertThat(saved.getAmendmentLinkStatus()).isEqualTo(AmendmentLinkStatus.NOT_APPLICABLE);
-        assertThat(queue.messages).singleElement().satisfies(message -> {
+        assertThat(outbox.messages).singleElement().satisfies(message -> {
             assertThat(message.documentId()).isEqualTo(result.documentId());
             assertThat(message.objectKey()).isNull();
         });
     }
 
     @Test
-    void sameTeamAccessionIsIdempotentAndDoesNotQueueAgain() {
+    void sameTeamAccessionIsIdempotentAndDoesNotRecordAnotherActiveRequest() {
         UUID teamId = UUID.randomUUID();
 
         var first = service.importFiling(original(), teamId);
@@ -67,16 +67,34 @@ class ImportFilingServiceTest {
 
         assertThat(second.documentId()).isEqualTo(first.documentId());
         assertThat(repository.store).hasSize(1);
-        assertThat(queue.messages).hasSize(1);
+        assertThat(outbox.messages).hasSize(1);
     }
 
     @Test
-    void concurrentSameTeamImportReturnsOneDocumentAndQueuesExactlyOnce() throws Exception {
+    void existingCompletedFilingDoesNotRecordAnotherAnalysisRequest() {
+        UUID teamId = UUID.randomUUID();
+        Document completed = repository.save(Document.builder()
+                .id(UUID.randomUUID())
+                .teamId(teamId)
+                .fileName("completed filing")
+                .status(DocumentStatus.COMPLETED)
+                .source(DocumentSource.EDGAR)
+                .accessionNumber(ORIGINAL)
+                .build());
+
+        var result = service.importFiling(original(), teamId);
+
+        assertThat(result.documentId()).isEqualTo(completed.getId());
+        assertThat(outbox.messages).isEmpty();
+    }
+
+    @Test
+    void concurrentSameTeamImportReturnsOneDocumentAndRecordsOneActiveRequest() throws Exception {
         UUID teamId = UUID.randomUUID();
         ConcurrentRepository concurrentRepository = new ConcurrentRepository();
-        ThreadSafeQueue concurrentQueue = new ThreadSafeQueue();
+        RecordingOutbox concurrentOutbox = new RecordingOutbox();
         ImportFilingService concurrentService = new ImportFilingService(
-                concurrentRepository, concurrentQueue, new VaultAuditLogger());
+                concurrentRepository, concurrentOutbox, new VaultAuditLogger());
 
         try (var executor = Executors.newFixedThreadPool(2)) {
             var first = executor.submit(() -> concurrentService.importFiling(original(), teamId));
@@ -87,58 +105,7 @@ class ImportFilingServiceTest {
 
             assertThat(firstResult).isEqualTo(secondResult);
             assertThat(concurrentRepository.documents).hasSize(1);
-            assertThat(concurrentQueue.messages).hasSize(1);
-        }
-    }
-
-    @Test
-    void queuePublicationWaitsUntilSuccessfulTransactionCommit() {
-        UUID teamId = UUID.randomUUID();
-        TransactionSynchronizationManager.initSynchronization();
-        try {
-            service.importFiling(original(), teamId);
-
-            assertThat(queue.messages).as("analysis must not be published before commit").isEmpty();
-
-            TransactionSynchronizationManager.getSynchronizations()
-                    .forEach(synchronization -> synchronization.afterCommit());
-            assertThat(queue.messages).hasSize(1);
-        } finally {
-            TransactionSynchronizationManager.clearSynchronization();
-        }
-    }
-
-    @Test
-    void retryAfterPostCommitQueueFailureReusesDocumentAndPublishesAProcessableJob() {
-        UUID teamId = UUID.randomUUID();
-        FailOnceQueue failOnceQueue = new FailOnceQueue();
-        ImportFilingService retryableService = new ImportFilingService(
-                repository, failOnceQueue, new VaultAuditLogger());
-
-        TransactionSynchronizationManager.initSynchronization();
-        UUID importedDocumentId;
-        try {
-            importedDocumentId = retryableService.importFiling(original(), teamId).documentId();
-            assertThatThrownBy(() -> TransactionSynchronizationManager.getSynchronizations()
-                    .forEach(synchronization -> synchronization.afterCommit()))
-                    .isInstanceOf(IllegalStateException.class)
-                    .hasMessageContaining("queue unavailable");
-        } finally {
-            TransactionSynchronizationManager.clearSynchronization();
-        }
-
-        TransactionSynchronizationManager.initSynchronization();
-        try {
-            var retried = retryableService.importFiling(original(), teamId);
-            TransactionSynchronizationManager.getSynchronizations()
-                    .forEach(synchronization -> synchronization.afterCommit());
-
-            assertThat(retried.documentId()).isEqualTo(importedDocumentId);
-            assertThat(repository.store).hasSize(1);
-            assertThat(failOnceQueue.messages).singleElement().satisfies(message ->
-                    assertThat(message.documentId()).isEqualTo(importedDocumentId));
-        } finally {
-            TransactionSynchronizationManager.clearSynchronization();
+            assertThat(concurrentOutbox.messages).hasSize(1);
         }
     }
 
@@ -149,7 +116,7 @@ class ImportFilingServiceTest {
 
         assertThat(second.documentId()).isNotEqualTo(first.documentId());
         assertThat(repository.store).hasSize(2);
-        assertThat(queue.messages).hasSize(2);
+        assertThat(outbox.messages).hasSize(2);
     }
 
     @Test
@@ -182,7 +149,7 @@ class ImportFilingServiceTest {
         Document reconciled = repository.store.get(amendment.documentId());
         assertThat(reconciled.getAmendsDocumentId()).isEqualTo(original.documentId());
         assertThat(reconciled.getAmendmentLinkStatus()).isEqualTo(AmendmentLinkStatus.LINKED);
-        assertThat(queue.messages).hasSize(2);
+        assertThat(outbox.messages).hasSize(2);
     }
 
     @Test
@@ -300,7 +267,7 @@ class ImportFilingServiceTest {
         assertThatThrownBy(() -> service.importFiling(command, UUID.randomUUID()))
                 .isInstanceOf(IllegalArgumentException.class);
         assertThat(repository.store).isEmpty();
-        assertThat(queue.messages).isEmpty();
+        assertThat(outbox.messages).isEmpty();
     }
 
     private ImportFilingCommand original() {
@@ -325,40 +292,23 @@ class ImportFilingServiceTest {
                 "https://sec.example/" + accession);
     }
 
-    static class RecordingQueue implements AnalysisQueuePort {
+    static class RecordingOutbox implements AnalysisOutboxPort {
         final List<DocumentAnalysisMessage> messages = new ArrayList<>();
 
         @Override
         public void enqueue(DocumentAnalysisMessage message) {
-            messages.add(message);
-        }
-    }
-
-    static class ThreadSafeQueue implements AnalysisQueuePort {
-        final List<DocumentAnalysisMessage> messages = new CopyOnWriteArrayList<>();
-
-        @Override
-        public void enqueue(DocumentAnalysisMessage message) {
-            messages.add(message);
-        }
-    }
-
-    static class FailOnceQueue implements AnalysisQueuePort {
-        final AtomicInteger attempts = new AtomicInteger();
-        final List<DocumentAnalysisMessage> messages = new ArrayList<>();
-
-        @Override
-        public void enqueue(DocumentAnalysisMessage message) {
-            if (attempts.getAndIncrement() == 0) {
-                throw new IllegalStateException("queue unavailable after commit");
+            if (!messages.contains(message)) {
+                messages.add(message);
             }
-            messages.add(message);
         }
+
+        @Override public List<ClaimedAnalysisRequest> claimDue(Instant now, int limit, Duration leaseDuration) { return List.of(); }
+        @Override public void markPublished(UUID outboxId, UUID claimToken, Instant publishedAt) { }
+        @Override public void markFailed(UUID outboxId, UUID claimToken, Instant nextAttemptAt, String error) { }
     }
 
     static class ConcurrentRepository implements DocumentRepositoryPort {
         final Map<String, Document> documents = new ConcurrentHashMap<>();
-        final Map<UUID, Boolean> publicationClaims = new ConcurrentHashMap<>();
         final CyclicBarrier initialLookups = new CyclicBarrier(2);
         final AtomicInteger lookupCount = new AtomicInteger();
 
@@ -370,13 +320,6 @@ class ImportFilingServiceTest {
                 return new InsertResult(findByTeamIdAndAccessionNumber(
                         document.getTeamId(), document.getAccessionNumber()).orElseThrow(), false);
             }
-        }
-
-        @Override public boolean claimAnalysisPublication(UUID documentId) {
-            return publicationClaims.putIfAbsent(documentId, true) == null;
-        }
-        @Override public void releaseAnalysisPublication(UUID documentId) {
-            publicationClaims.remove(documentId);
         }
 
         @Override
@@ -426,20 +369,12 @@ class ImportFilingServiceTest {
 
     static class FakeDocumentRepository implements DocumentRepositoryPort {
         final Map<UUID, Document> store = new LinkedHashMap<>();
-        final Map<UUID, Boolean> publicationClaims = new LinkedHashMap<>();
 
         @Override
         public InsertResult insertOrGet(Document document) {
             return findByTeamIdAndAccessionNumber(document.getTeamId(), document.getAccessionNumber())
                     .map(existing -> new InsertResult(existing, false))
                     .orElseGet(() -> new InsertResult(save(document), true));
-        }
-
-        @Override public boolean claimAnalysisPublication(UUID documentId) {
-            return publicationClaims.putIfAbsent(documentId, true) == null;
-        }
-        @Override public void releaseAnalysisPublication(UUID documentId) {
-            publicationClaims.remove(documentId);
         }
 
         @Override

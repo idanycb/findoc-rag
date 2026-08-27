@@ -37,8 +37,6 @@ class ListDocumentsServiceTest {
 
     static class FakeDocumentRepository implements DocumentRepositoryPort {
         @Override public InsertResult insertOrGet(Document document) { return new InsertResult(save(document), true); }
-        @Override public boolean claimAnalysisPublication(UUID documentId) { return true; }
-        @Override public void releaseAnalysisPublication(UUID documentId) { }
         final Map<UUID, Document> store = new LinkedHashMap<>();
         UUID lastLookupTeamId;
 

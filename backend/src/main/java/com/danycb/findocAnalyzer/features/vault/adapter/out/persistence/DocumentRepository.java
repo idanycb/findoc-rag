@@ -6,8 +6,6 @@ import lombok.RequiredArgsConstructor;
 import jakarta.persistence.EntityManager;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -67,32 +65,6 @@ public class DocumentRepository implements DocumentRepositoryPort {
                 ? findById(id).orElseThrow()
                 : findByTeamIdAndAccessionNumber(document.getTeamId(), document.getAccessionNumber()).orElseThrow();
         return new InsertResult(persisted, inserted == 1);
-    }
-
-    @Override
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public boolean claimAnalysisPublication(UUID documentId) {
-        return entityManager.createNativeQuery("""
-                        UPDATE document_metadata
-                        SET analysis_publication_claimed = TRUE
-                        WHERE id = :documentId
-                          AND status = 'PENDING'
-                          AND analysis_publication_claimed = FALSE
-                        """)
-                .setParameter("documentId", documentId)
-                .executeUpdate() == 1;
-    }
-
-    @Override
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void releaseAnalysisPublication(UUID documentId) {
-        entityManager.createNativeQuery("""
-                        UPDATE document_metadata
-                        SET analysis_publication_claimed = FALSE
-                        WHERE id = :documentId
-                        """)
-                .setParameter("documentId", documentId)
-                .executeUpdate();
     }
 
     @Override

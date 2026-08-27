@@ -1,7 +1,7 @@
 package com.danycb.findocAnalyzer.features.vault.application;
 
 import com.danycb.findocAnalyzer.features.vault.application.dto.DocumentAnalysisMessage;
-import com.danycb.findocAnalyzer.features.vault.application.out.AnalysisQueuePort;
+import com.danycb.findocAnalyzer.features.vault.application.out.AnalysisOutboxPort;
 import com.danycb.findocAnalyzer.features.vault.application.out.DocumentRepositoryPort;
 import com.danycb.findocAnalyzer.features.vault.application.out.ExternalStoragePort;
 import com.danycb.findocAnalyzer.features.vault.domain.Document;
@@ -14,6 +14,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.time.Duration;
+import java.time.Instant;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -21,9 +23,9 @@ class RequestDocumentAnalysisServiceTest {
 
     private final FakeDocumentRepository repository = new FakeDocumentRepository();
     private final RecordingStorage storage = new RecordingStorage();
-    private final RecordingAnalysisQueue analysisQueue = new RecordingAnalysisQueue();
+    private final RecordingOutbox outbox = new RecordingOutbox();
     private final RequestDocumentAnalysisService service = new RequestDocumentAnalysisService(
-            repository, storage, analysisQueue, new VaultAuditLogger());
+            repository, storage, outbox, new VaultAuditLogger());
 
     private final UUID teamId = UUID.randomUUID();
 
@@ -42,7 +44,7 @@ class RequestDocumentAnalysisServiceTest {
 
         service.execute(document.getId(), teamId);
 
-        assertThat(analysisQueue.messages).isEmpty();
+        assertThat(outbox.messages).isEmpty();
         assertThat(repository.store.get(document.getId()).getStatus()).isEqualTo(DocumentStatus.COMPLETED);
     }
 
@@ -53,8 +55,8 @@ class RequestDocumentAnalysisServiceTest {
         service.execute(document.getId(), teamId);
 
         assertThat(repository.store.get(document.getId()).getStatus()).isEqualTo(DocumentStatus.PENDING);
-        assertThat(analysisQueue.messages).hasSize(1);
-        DocumentAnalysisMessage message = analysisQueue.messages.get(0);
+        assertThat(outbox.messages).hasSize(1);
+        DocumentAnalysisMessage message = outbox.messages.get(0);
         assertThat(message.documentId()).isEqualTo(document.getId());
         assertThat(message.objectKey()).isEqualTo("files/" + document.getId());
     }
@@ -66,8 +68,8 @@ class RequestDocumentAnalysisServiceTest {
         service.execute(document.getId(), teamId);
 
         assertThat(repository.store.get(document.getId()).getStatus()).isEqualTo(DocumentStatus.PENDING);
-        assertThat(analysisQueue.messages).hasSize(1);
-        assertThat(analysisQueue.messages.get(0).documentId()).isEqualTo(document.getId());
+        assertThat(outbox.messages).hasSize(1);
+        assertThat(outbox.messages.get(0).documentId()).isEqualTo(document.getId());
     }
 
     @Test
@@ -80,13 +82,17 @@ class RequestDocumentAnalysisServiceTest {
         assertThat(repository.lastLookupTeamId).isEqualTo(teamId);
     }
 
-    static class RecordingAnalysisQueue implements AnalysisQueuePort {
+    static class RecordingOutbox implements AnalysisOutboxPort {
         final List<DocumentAnalysisMessage> messages = new ArrayList<>();
 
         @Override
         public void enqueue(DocumentAnalysisMessage message) {
             messages.add(message);
         }
+
+        @Override public List<ClaimedAnalysisRequest> claimDue(Instant now, int limit, Duration leaseDuration) { return List.of(); }
+        @Override public void markPublished(UUID outboxId, UUID claimToken, Instant publishedAt) { }
+        @Override public void markFailed(UUID outboxId, UUID claimToken, Instant nextAttemptAt, String error) { }
     }
 
     static class RecordingStorage implements ExternalStoragePort {
@@ -117,8 +123,6 @@ class RequestDocumentAnalysisServiceTest {
 
     static class FakeDocumentRepository implements DocumentRepositoryPort {
         @Override public InsertResult insertOrGet(Document document) { return new InsertResult(save(document), true); }
-        @Override public boolean claimAnalysisPublication(UUID documentId) { return true; }
-        @Override public void releaseAnalysisPublication(UUID documentId) { }
         final Map<UUID, Document> store = new LinkedHashMap<>();
         UUID lastLookupId;
         UUID lastLookupTeamId;

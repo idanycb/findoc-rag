@@ -59,8 +59,6 @@ class DocumentTeamIsolationTest {
 
     static class FakeDocumentRepository implements DocumentRepositoryPort {
         @Override public InsertResult insertOrGet(Document document) { return new InsertResult(save(document), true); }
-        @Override public boolean claimAnalysisPublication(UUID documentId) { return true; }
-        @Override public void releaseAnalysisPublication(UUID documentId) { }
         private final Map<UUID, Document> store = new LinkedHashMap<>();
 
         @Override

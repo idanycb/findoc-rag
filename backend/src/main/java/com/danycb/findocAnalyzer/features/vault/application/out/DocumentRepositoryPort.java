@@ -12,10 +12,6 @@ public interface DocumentRepositoryPort {
 
     InsertResult insertOrGet(Document document);
 
-    boolean claimAnalysisPublication(UUID documentId);
-
-    void releaseAnalysisPublication(UUID documentId);
-
     Optional<Document> findById(UUID id);
 
     default Document getById(UUID id) {

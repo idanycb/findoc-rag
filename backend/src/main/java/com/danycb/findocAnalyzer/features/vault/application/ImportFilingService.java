@@ -4,7 +4,7 @@ import com.danycb.findocAnalyzer.features.vault.application.dto.DocumentAnalysis
 import com.danycb.findocAnalyzer.features.vault.application.dto.ImportFilingCommand;
 import com.danycb.findocAnalyzer.features.vault.application.dto.ImportFilingResult;
 import com.danycb.findocAnalyzer.features.vault.application.in.ImportFilingUseCase;
-import com.danycb.findocAnalyzer.features.vault.application.out.AnalysisQueuePort;
+import com.danycb.findocAnalyzer.features.vault.application.out.AnalysisOutboxPort;
 import com.danycb.findocAnalyzer.features.vault.application.out.DocumentRepositoryPort;
 import com.danycb.findocAnalyzer.features.vault.domain.Document;
 import com.danycb.findocAnalyzer.features.vault.domain.DocumentSource;
@@ -14,8 +14,6 @@ import com.danycb.findocAnalyzer.features.vault.domain.EdgarFormType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.Locale;
 import java.util.UUID;
@@ -24,7 +22,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class ImportFilingService implements ImportFilingUseCase {
     private final DocumentRepositoryPort repository;
-    private final AnalysisQueuePort analysisQueue;
+    private final AnalysisOutboxPort outbox;
     private final VaultAuditLogger auditLogger;
 
     @Override
@@ -35,7 +33,7 @@ public class ImportFilingService implements ImportFilingUseCase {
 
         var existing = repository.findByTeamIdAndAccessionNumber(teamId, accessionNumber);
         if (existing.isPresent()) {
-            enqueuePendingRetry(existing.get());
+            enqueueIfPending(existing.get());
             return result(existing.get());
         }
 
@@ -80,46 +78,20 @@ public class ImportFilingService implements ImportFilingUseCase {
         DocumentRepositoryPort.InsertResult persistence = repository.insertOrGet(document);
         Document saved = persistence.document();
         if (!persistence.inserted()) {
-            enqueuePendingRetry(saved);
+            enqueueIfPending(saved);
             return result(saved);
         }
         if (!form.isAmendment()) {
             reconcileWaitingAmendments(saved);
         }
-        enqueueAfterCommit(saved);
+        enqueueIfPending(saved);
         auditLogger.analysisRequested(saved);
         return result(saved);
     }
 
-    private void enqueueAfterCommit(Document saved) {
-        DocumentAnalysisMessage message = new DocumentAnalysisMessage(saved.getId(), null);
-        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
-            claimAndPublish(message);
-            return;
-        }
-        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-            @Override
-            public void afterCommit() {
-                claimAndPublish(message);
-            }
-        });
-    }
-
-    private void claimAndPublish(DocumentAnalysisMessage message) {
-        if (!repository.claimAnalysisPublication(message.documentId())) {
-            return;
-        }
-        try {
-            analysisQueue.enqueue(message);
-        } catch (RuntimeException failure) {
-            repository.releaseAnalysisPublication(message.documentId());
-            throw failure;
-        }
-    }
-
-    private void enqueuePendingRetry(Document document) {
+    private void enqueueIfPending(Document document) {
         if (document.getStatus() == DocumentStatus.PENDING) {
-            enqueueAfterCommit(document);
+            outbox.enqueue(new DocumentAnalysisMessage(document.getId(), null));
         }
     }
 

@@ -432,8 +432,6 @@ class AnalyzeDocumentServiceTest {
         final Map<UUID, Document> store = new LinkedHashMap<>();
 
         @Override public InsertResult insertOrGet(Document document) { return new InsertResult(save(document), true); }
-        @Override public boolean claimAnalysisPublication(UUID documentId) { return true; }
-        @Override public void releaseAnalysisPublication(UUID documentId) { }
 
         @Override
         public Document save(Document document) {

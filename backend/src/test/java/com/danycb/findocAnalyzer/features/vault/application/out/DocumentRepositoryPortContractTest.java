@@ -3,9 +3,7 @@ package com.danycb.findocAnalyzer.features.vault.application.out;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Modifier;
-import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -42,24 +40,9 @@ class DocumentRepositoryPortContractTest {
     }
 
     @Test
-    void analysisPublicationClaimAndReleaseAreRequiredDatabaseOperations() {
-        var methods = Arrays.asList(DocumentRepositoryPort.class.getMethods());
-        assertThat(methods).extracting(Method::getName)
-                .contains("claimAnalysisPublication", "releaseAnalysisPublication");
-        Method claim = methods.stream()
-                .filter(method -> method.getName().equals("claimAnalysisPublication"))
-                .findFirst().orElseThrow();
-        Method release = methods.stream()
-                .filter(method -> method.getName().equals("releaseAnalysisPublication"))
-                .findFirst().orElseThrow();
-
-        assertThat(claim.getParameterTypes()).containsExactly(UUID.class);
-        assertThat(claim.getReturnType()).isEqualTo(boolean.class);
-        assertThat(claim.isDefault()).isFalse();
-        assertThat(Modifier.isAbstract(claim.getModifiers())).isTrue();
-        assertThat(release.getParameterTypes()).containsExactly(UUID.class);
-        assertThat(release.getReturnType()).isEqualTo(void.class);
-        assertThat(release.isDefault()).isFalse();
-        assertThat(Modifier.isAbstract(release.getModifiers())).isTrue();
+    void analysisPublicationStateIsNotPartOfDocumentPersistence() {
+        assertThat(DocumentRepositoryPort.class.getMethods())
+                .extracting(method -> method.getName())
+                .doesNotContain("claimAnalysisPublication", "releaseAnalysisPublication");
     }
 }

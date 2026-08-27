@@ -2,7 +2,7 @@ package com.danycb.findocAnalyzer.features.vault.application;
 
 import com.danycb.findocAnalyzer.features.vault.application.dto.DocumentAnalysisMessage;
 import com.danycb.findocAnalyzer.features.vault.application.in.RequestDocumentAnalysisUseCase;
-import com.danycb.findocAnalyzer.features.vault.application.out.AnalysisQueuePort;
+import com.danycb.findocAnalyzer.features.vault.application.out.AnalysisOutboxPort;
 import com.danycb.findocAnalyzer.features.vault.application.out.DocumentRepositoryPort;
 import com.danycb.findocAnalyzer.features.vault.application.out.ExternalStoragePort;
 import com.danycb.findocAnalyzer.features.vault.domain.Document;
@@ -17,7 +17,7 @@ import java.util.UUID;
 public class RequestDocumentAnalysisService implements RequestDocumentAnalysisUseCase {
     private final DocumentRepositoryPort repository;
     private final ExternalStoragePort objectStorage;
-    private final AnalysisQueuePort analysisQueue;
+    private final AnalysisOutboxPort outbox;
     private final VaultAuditLogger auditLogger;
 
     @Override
@@ -34,7 +34,7 @@ public class RequestDocumentAnalysisService implements RequestDocumentAnalysisUs
         Document saved = repository.save(document);
 
         String objectKey = objectStorage.buildObjectKey(id);
-        analysisQueue.enqueue(new DocumentAnalysisMessage(id, objectKey));
+        outbox.enqueue(new DocumentAnalysisMessage(id, objectKey));
         auditLogger.analysisRequested(saved);
     }
 }

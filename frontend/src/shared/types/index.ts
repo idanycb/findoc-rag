@@ -63,6 +63,7 @@ export interface EdgarCompany {
 export interface EdgarFiling {
   accession?: string | null;
   accessionNumber?: string | null;
+  amendsAccessionNumber?: string | null;
   form?: string | null;
   formType?: string | null;
   filingDate?: string | null;
@@ -73,8 +74,15 @@ export interface EdgarFiling {
 
 export interface EdgarImportRequest {
   ticker: string;
-  accession?: string;
-  accessionNumber?: string;
+  accessionNumber: string;
+  amendsAccessionNumber?: string | null;
+  cik?: string | null;
+  companyName?: string | null;
+  formType: string;
+  fiscalPeriod?: string | null;
+  reportDate?: string | null;
+  filingDate?: string | null;
+  sourceUrl?: string | null;
 }
 
 export interface EdgarImportResult {

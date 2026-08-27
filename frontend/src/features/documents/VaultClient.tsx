@@ -116,19 +116,19 @@ export function VaultClient() {
           </p>
         </div>
         <div className="hidden sm:flex items-center gap-3">
-          <div className="flex h-[38px] w-[220px] items-center gap-2 rounded-lg border border-[#E8E8E8] bg-[#F5F5F5] px-[14px]">
+          <div className="flex h-9.5 w-55 items-center gap-2 rounded-lg border border-[#E8E8E8] bg-[#F5F5F5] px-3.5">
             <Search size={15} className="text-[#AAAAAA]" />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search documents…"
-              className="flex-1 bg-transparent text-sm text-[#111111] placeholder:text-[#BBBBBB] outline-none"
+              className="flex-1 bg-transparent text-sm text-[#111111] placeholder:text-[#BBBBBB] outline-hidden"
             />
           </div>
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={uploading}
-            className="flex h-[38px] items-center gap-2 rounded-lg bg-[#111111] px-4 text-sm font-semibold text-white disabled:opacity-60"
+            className="flex h-9.5 items-center gap-2 rounded-lg bg-[#111111] px-4 text-sm font-semibold text-white disabled:opacity-60"
           >
             <Upload size={15} strokeWidth={2.2} />
             {uploading ? 'Uploading…' : 'Upload Document'}
@@ -145,13 +145,13 @@ export function VaultClient() {
           onChange={handleHeaderFileChange}
         />
         {/* Search — mobile */}
-        <div className="sm:hidden flex items-center gap-2 bg-white border border-[#E8E8E8] rounded-[9px] px-[14px] h-10">
+        <div className="sm:hidden flex items-center gap-2 bg-white border border-[#E8E8E8] rounded-[9px] px-3.5 h-10">
           <Search size={14} className="text-[#BBBBBB]" />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search documents…"
-            className="flex-1 bg-transparent text-sm text-[#111111] placeholder:text-[#BBBBBB] outline-none"
+            className="flex-1 bg-transparent text-sm text-[#111111] placeholder:text-[#BBBBBB] outline-hidden"
           />
         </div>
 
@@ -171,7 +171,7 @@ export function VaultClient() {
             ['In progress', inFlight, 'text-[#555555]'],
             ['Failed', failed, 'text-[#B91C1C]'],
           ].map(([label, value, color]) => (
-            <div key={label} className="rounded-[12px] bg-white p-4 shadow-[0_1px_4px_rgba(0,0,0,.06)]">
+            <div key={label} className="rounded-xl bg-white p-4 shadow-[0_1px_4px_rgba(0,0,0,.06)]">
               <div className="text-xs text-[#888888]">{label}</div>
               <div className={`mt-1 text-2xl font-bold tracking-tight ${color}`}>{value}</div>
             </div>
@@ -196,7 +196,17 @@ export function VaultClient() {
           <div className="text-[14px] text-[#888888] text-center py-8">Loading…</div>
         ) : filtered.length === 0 ? (
           <div className="text-[14px] text-[#888888] text-center py-8">
-            {search ? 'No matching documents.' : 'No documents yet. Upload one above.'}
+            {search ? (
+              'No matching documents.'
+            ) : (
+              <>
+                No documents yet. Upload one above or{' '}
+                <Link href="/edgar" className="font-semibold text-[#111111] underline">
+                  import a 10-K, 10-Q, or amendment
+                </Link>
+                .
+              </>
+            )}
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -227,25 +237,25 @@ export function VaultClient() {
                       )}
                     </div>
                   </div>
-                  <Link href={`/vault/documents/${doc.id}`} className="mt-[14px] block">
+                  <Link href={`/vault/documents/${doc.id}`} className="mt-3.5 block">
                     <h2 className="truncate text-[15px] font-bold text-[#111111]">
                       {doc.fileName}
                     </h2>
                     {edgarDocument && filingSummary(doc) && (
-                      <p className="mt-[3px] truncate text-[13px] font-semibold text-[#555555]">
+                      <p className="mt-0.75 truncate text-[13px] font-semibold text-[#555555]">
                         {filingSummary(doc)}
                       </p>
                     )}
-                    <p className="mt-[3px] text-[13px] text-[#AAAAAA]">
+                    <p className="mt-0.75 text-[13px] text-[#AAAAAA]">
                       {doc.status === 'COMPLETED'
                         ? `Indexed on ${formatDate(doc.uploadedAt)}`
                         : `Uploaded ${formatDate(doc.uploadedAt)}`}
                     </p>
                   </Link>
-                  <div className="mt-4 flex items-center justify-between border-t border-[#F5F5F5] pt-[14px]">
+                  <div className="mt-4 flex items-center justify-between border-t border-[#F5F5F5] pt-3.5">
                     <Link
                       href={`/vault/documents/${doc.id}`}
-                      className={`text-[11px] font-semibold uppercase tracking-[.1em] ${
+                      className={`text-[11px] font-semibold uppercase tracking-widest ${
                         doc.status === 'FAILED' ? 'text-[#B91C1C]' : 'text-[#666666]'
                       }`}
                     >
